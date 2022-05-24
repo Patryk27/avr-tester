@@ -1,0 +1,12 @@
+[package]
+name = "e2e-uart-eval"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+atmega-hal = { git = "https://github.com/Rahix/avr-hal", features = ["atmega328p", "rt"] }
+avr-hal-generic = { git = "https://github.com/Rahix/avr-hal" }
+panic-halt = "0.2"
+
+# TODO remove after compiler-builtins are upgraded in rustc
+compiler_builtins_local = { package = "compiler_builtins", git = "https://github.com/rust-lang/compiler-builtins" }

@@ -1,0 +1,11 @@
+[package]
+name = "avr-tester"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+simavr-ffi = { git = "https://github.com/Patryk27/simavr-ffi" }
+
+[dev-dependencies]
+rand = "0.8"
+test-case = "2.1"
