@@ -1,4 +1,4 @@
-use super::{Avr, IoCtl};
+use super::*;
 use simavr_ffi as ffi;
 use std::{cell::UnsafeCell, collections::VecDeque, ffi::c_void};
 
@@ -15,33 +15,49 @@ impl Uart {
         }
     }
 
-    pub fn init(self, avr: &mut Avr) -> Self {
-        unsafe {
-            let mut flags: u32 = 0;
+    pub fn try_init(self, avr: &mut Avr) -> Option<Self> {
+        let mut flags: u32 = 0;
 
-            ffi::avr_ioctl(
-                avr.ptr(),
-                IoCtl::UartGetFlags { uart_id: self.id }.into_ffi(),
-                &mut flags as *mut _ as *mut _,
-            );
+        // First, let's see if the AVR we're running at supports this UART (e.g.
+        // there's no UART2 on Atmega328p)
+        //
+        // Safety: `IoCtl::UartGetFlags` requires parameter of type `u32`, which
+        //         is the case here
+        let result = unsafe { avr.ioctl(IoCtl::UartGetFlags { uart: self.id }, &mut flags) };
 
-            flags &= !ffi::AVR_UART_FLAG_STDIO;
-
-            ffi::avr_ioctl(
-                avr.ptr(),
-                IoCtl::UartSetFlags { uart_id: self.id }.into_ffi(),
-                &mut flags as *mut _ as *mut _,
-            );
+        if result != 0 {
+            return None;
         }
 
+        // Our AVR supports this UART, neat!
+        //
+        // Now let's detach it from the standard output so that simavr doesn't
+        // try to write there (this is especially important if someone's trying
+        // to send binary data through this UART)
+        flags &= !ffi::AVR_UART_FLAG_STDIO;
+
+        // Safety: `IoCtl::UartSetFlags` requires parameter of type `u32`, which
+        //         is the case here
         unsafe {
-            let ioctl = IoCtl::UartGetIrq { uart_id: self.id }.into_ffi();
-            let irq_output = ffi::avr_io_getirq(avr.ptr(), ioctl, ffi::UART_IRQ_OUTPUT as _);
-            let irq_xon = ffi::avr_io_getirq(avr.ptr(), ioctl, ffi::UART_IRQ_OUT_XON as _);
-            let irq_xoff = ffi::avr_io_getirq(avr.ptr(), ioctl, ffi::UART_IRQ_OUT_XOFF as _);
+            avr.ioctl(IoCtl::UartSetFlags { uart: self.id }, &mut flags);
+        }
+
+        // Now let's finalize everything by attaching to simavr's IRQs, so that
+        // we can easily get notified when AVR sends something through UART.
+        //
+        // Safety: We check that all `avr_io_getirq()` invocations return
+        //         non-null pointers.
+        unsafe {
+            let ioctl = IoCtl::UartGetIrq { uart: self.id };
+            let irq_output = avr.io_getirq(ioctl, ffi::UART_IRQ_OUTPUT);
+            let irq_xon = avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XON);
+            let irq_xoff = avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XOFF);
 
             if irq_output.is_null() || irq_xon.is_null() || irq_xoff.is_null() {
-                panic!("avr_io_getirq() failed (got a null pointer; maybe your AVR doesn't support UART{}?)", self.id);
+                panic!(
+                    "avr_io_getirq() failed (got a null pointer trying to initialize UART{})",
+                    self.id
+                );
             }
 
             ffi::avr_irq_register_notify(irq_output, Some(Self::on_output), self.ptr as *mut _);
@@ -49,7 +65,7 @@ impl Uart {
             ffi::avr_irq_register_notify(irq_xoff, Some(Self::on_xoff), self.ptr as *mut _);
         }
 
-        self
+        Some(self)
     }
 
     pub fn flush(&mut self, avr: &mut Avr) {
@@ -68,7 +84,7 @@ impl Uart {
             };
 
             let irq = irq.get_or_insert_with(|| {
-                let ioctl = IoCtl::UartGetIrq { uart_id: self.id }.into_ffi();
+                let ioctl = IoCtl::UartGetIrq { uart: self.id }.into_ffi();
                 let irq = unsafe { ffi::avr_io_getirq(avr.ptr(), ioctl, ffi::UART_IRQ_INPUT as _) };
 
                 if irq.is_null() {

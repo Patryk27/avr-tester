@@ -1,7 +1,8 @@
-use super::CpuState;
+use super::*;
 use simavr_ffi as ffi;
 use std::alloc;
 use std::ffi::CString;
+use std::os::raw::c_int;
 
 pub struct Avr {
     ptr: *mut ffi::avr_t,
@@ -33,14 +34,29 @@ impl Avr {
         self
     }
 
-    pub fn run(&mut self) -> CpuState {
-        let state = unsafe { ffi::avr_run(self.ptr) };
-
-        CpuState::from_ffi(state)
+    pub fn cycle(&self) -> u64 {
+        unsafe { (*self.ptr).cycle }
     }
 
-    // TODO in theory, it's only safe to call this function after `.init()` has
-    //      happened
+    pub fn run(&mut self) -> (CpuState, CpuCyclesTaken) {
+        let cycle = self.cycle();
+        let state = unsafe { ffi::avr_run(self.ptr) };
+        let cycles_taken = self.cycle() - cycle;
+
+        let state = CpuState::from_ffi(state);
+        let cycles_taken = CpuCyclesTaken::new(cycles_taken);
+
+        (state, cycles_taken)
+    }
+
+    pub unsafe fn ioctl<T>(&mut self, ioctl: IoCtl, param: &mut T) -> c_int {
+        ffi::avr_ioctl(self.ptr, ioctl.into_ffi(), param as *mut _ as *mut _)
+    }
+
+    pub unsafe fn io_getirq(&mut self, ioctl: IoCtl, irq: u32) -> *mut ffi::avr_irq_t {
+        ffi::avr_io_getirq(self.ptr, ioctl.into_ffi(), irq as _)
+    }
+
     pub fn ptr(&mut self) -> *mut ffi::avr_t {
         self.ptr
     }

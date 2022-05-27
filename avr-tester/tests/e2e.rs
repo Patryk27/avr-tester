@@ -1,5 +1,8 @@
 #![feature(exit_status_error)]
 
+#[path = "e2e/pins.rs"]
+mod pins;
+
 #[path = "e2e/uart_eval.rs"]
 mod uart_eval;
 

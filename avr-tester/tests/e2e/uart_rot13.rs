@@ -3,15 +3,15 @@ use crate::prelude::*;
 #[test]
 fn test() {
     let firmware = build("uart-rot13");
-    let mut avr = AvrTester::atmega_328p(firmware, 16_000_000);
+    let mut avr = AvrTester::atmega328p(firmware, 16_000_000);
 
-    avr.run_for_ms(2);
+    avr.run_for_ms(1);
     assert_eq!(b"Ready!", avr.uart0().recv_bytes().as_slice());
 
     let mut assert = |given: &str, expected: &str| {
         avr.uart0().send_byte(given.len() as u8);
         avr.uart0().send_string(given);
-        avr.run_for_ms(50);
+        avr.run_for_ms(25);
 
         assert_eq!(expected, avr.uart0().recv_string());
     };

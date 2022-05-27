@@ -1,16 +1,18 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IoCtl {
-    UartSetFlags { uart_id: u8 },
-    UartGetFlags { uart_id: u8 },
-    UartGetIrq { uart_id: u8 },
+    IoPortGetState { port: u8 },
+    UartSetFlags { uart: u8 },
+    UartGetFlags { uart: u8 },
+    UartGetIrq { uart: u8 },
 }
 
 impl IoCtl {
     pub fn into_ffi(self) -> u32 {
         let ctl = match self {
-            IoCtl::UartSetFlags { uart_id } => [b'u', b'a', b's', b'0' + uart_id],
-            IoCtl::UartGetFlags { uart_id } => [b'u', b'a', b'g', b'0' + uart_id],
-            IoCtl::UartGetIrq { uart_id } => [b'u', b'a', b'r', b'0' + uart_id],
+            IoCtl::IoPortGetState { port } => [b'i', b'o', b's', port],
+            IoCtl::UartSetFlags { uart } => [b'u', b'a', b's', b'0' + uart],
+            IoCtl::UartGetFlags { uart } => [b'u', b'a', b'g', b'0' + uart],
+            IoCtl::UartGetIrq { uart } => [b'u', b'a', b'r', b'0' + uart],
         };
 
         u32::from_be_bytes(ctl)
@@ -30,36 +32,42 @@ mod tests {
             expected: [u8; 4],
         }
 
+        const TEST_IOPORT_GET_STATE: TestCase = TestCase {
+            given: IoCtl::IoPortGetState { port: b'D' },
+            expected: [b'i', b'o', b's', b'D'],
+        };
+
         const TEST_UART_SET_FLAGS_0: TestCase = TestCase {
-            given: IoCtl::UartSetFlags { uart_id: 0 },
+            given: IoCtl::UartSetFlags { uart: 0 },
             expected: [b'u', b'a', b's', b'0'],
         };
 
         const TEST_UART_SET_FLAGS_1: TestCase = TestCase {
-            given: IoCtl::UartSetFlags { uart_id: 1 },
+            given: IoCtl::UartSetFlags { uart: 1 },
             expected: [b'u', b'a', b's', b'1'],
         };
 
         const TEST_UART_GET_FLAGS_0: TestCase = TestCase {
-            given: IoCtl::UartGetFlags { uart_id: 0 },
+            given: IoCtl::UartGetFlags { uart: 0 },
             expected: [b'u', b'a', b'g', b'0'],
         };
 
         const TEST_UART_GET_FLAGS_1: TestCase = TestCase {
-            given: IoCtl::UartGetFlags { uart_id: 1 },
+            given: IoCtl::UartGetFlags { uart: 1 },
             expected: [b'u', b'a', b'g', b'1'],
         };
 
         const TEST_UART_GET_IRQ_0: TestCase = TestCase {
-            given: IoCtl::UartGetIrq { uart_id: 0 },
+            given: IoCtl::UartGetIrq { uart: 0 },
             expected: [b'u', b'a', b'r', b'0'],
         };
 
         const TEST_UART_GET_IRQ_1: TestCase = TestCase {
-            given: IoCtl::UartGetIrq { uart_id: 1 },
+            given: IoCtl::UartGetIrq { uart: 1 },
             expected: [b'u', b'a', b'r', b'1'],
         };
 
+        #[test_case(TEST_IOPORT_GET_STATE)]
         #[test_case(TEST_UART_SET_FLAGS_0)]
         #[test_case(TEST_UART_SET_FLAGS_1)]
         #[test_case(TEST_UART_GET_FLAGS_0)]

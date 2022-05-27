@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[test]
 fn test() {
     let firmware = build("uart-eval");
-    let mut avr = AvrTester::atmega_328p(firmware, 16_000_000);
+    let mut avr = AvrTester::atmega328p(firmware, 16_000_000);
 
     avr.run_for_ms(1);
 
@@ -11,7 +11,7 @@ fn test() {
     test_expressions(&mut avr);
 }
 
-fn test_primitives(avr: &mut AvrTester<Atmega328p>) {
+fn test_primitives(avr: &mut AvrTester) {
     const TRIES: usize = 100;
 
     eprintln!("Testing primitives");
@@ -68,7 +68,7 @@ fn test_primitives(avr: &mut AvrTester<Atmega328p>) {
     eprintln!();
 }
 
-fn test_expressions(avr: &mut AvrTester<Atmega328p>) {
+fn test_expressions(avr: &mut AvrTester) {
     const TRIES: usize = 10;
     const MAX_DEPTH: u32 = 16;
 
@@ -177,8 +177,8 @@ impl Type {
     }
 }
 
-impl<M> UartSend<M> for Type {
-    fn send<'a>(&self, uart: &mut Uart<'a, M>) {
+impl UartSend for Type {
+    fn send<'a>(&self, uart: &mut Uart<'a>) {
         uart.send_byte(1 + *self as u8);
     }
 }
@@ -228,8 +228,8 @@ enum Token {
     Const,
 }
 
-impl<M> UartSend<M> for Token {
-    fn send<'a>(&self, uart: &mut Uart<'a, M>) {
+impl UartSend for Token {
+    fn send<'a>(&self, uart: &mut Uart<'a>) {
         uart.send_byte(match self {
             Token::Op(Op::Add) => 1,
             Token::Op(Op::Sub) => 2,
@@ -294,7 +294,7 @@ impl Value {
         this
     }
 
-    fn recv<M>(ty: Type, uart: &mut Uart<'_, M>) -> Self {
+    fn recv(ty: Type, uart: &mut Uart<'_>) -> Self {
         match ty {
             Type::I8 => Self::I8(i8::from_le_bytes(uart.recv())),
             Type::U8 => Self::U8(u8::from_le_bytes(uart.recv())),
@@ -310,8 +310,8 @@ impl Value {
     }
 }
 
-impl<M> UartSend<M> for Value {
-    fn send<'a>(&self, uart: &mut Uart<'a, M>) {
+impl UartSend for Value {
+    fn send<'a>(&self, uart: &mut Uart<'a>) {
         match *self {
             Value::I8(value) => value.to_le_bytes().send(uart),
             Value::U8(value) => value.to_le_bytes().send(uart),
@@ -414,8 +414,8 @@ impl Expression {
     }
 }
 
-impl<M> UartSend<M> for Expression {
-    fn send<'a>(&self, uart: &mut Uart<'a, M>) {
+impl UartSend for Expression {
+    fn send<'a>(&self, uart: &mut Uart<'a>) {
         let (lhs, rhs, op) = match self {
             Self::Add(lhs, rhs) => (lhs, rhs, Op::Add),
             Self::Sub(lhs, rhs) => (lhs, rhs, Op::Sub),

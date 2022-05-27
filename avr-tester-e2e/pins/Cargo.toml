@@ -1,0 +1,10 @@
+[package]
+name = "e2e-pins"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+atmega-hal = { git = "https://github.com/Rahix/avr-hal", features = ["atmega328p", "rt"] }
+avr-hal-generic = { git = "https://github.com/Rahix/avr-hal" }
+panic-halt = "0.2"
+

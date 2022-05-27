@@ -1,4 +1,4 @@
-use super::Avr;
+use super::*;
 use simavr_ffi as ffi;
 use std::{alloc, ffi::CString, path::Path};
 
