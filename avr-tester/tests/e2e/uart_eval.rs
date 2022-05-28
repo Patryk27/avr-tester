@@ -1,20 +1,13 @@
 use crate::prelude::*;
 
 #[test]
-fn test() {
+fn primitives() {
+    const TRIES: usize = 100;
+
     let firmware = build("uart-eval");
     let mut avr = AvrTester::atmega328p(firmware, 16_000_000);
 
     avr.run_for_ms(1);
-
-    test_primitives(&mut avr);
-    test_expressions(&mut avr);
-}
-
-fn test_primitives(avr: &mut AvrTester) {
-    const TRIES: usize = 100;
-
-    eprintln!("Testing primitives");
 
     for ty in Type::all() {
         for op in Op::all() {
@@ -63,16 +56,17 @@ fn test_primitives(avr: &mut AvrTester) {
             }
         }
     }
-
-    eprintln!("... ok");
-    eprintln!();
 }
 
-fn test_expressions(avr: &mut AvrTester) {
+#[test]
+fn expressions() {
     const TRIES: usize = 10;
     const MAX_DEPTH: u32 = 16;
 
-    eprintln!("Testing expressions");
+    let firmware = build("uart-eval");
+    let mut avr = AvrTester::atmega328p(firmware, 16_000_000);
+
+    avr.run_for_ms(1);
 
     let mut rng = thread_rng();
 
@@ -126,9 +120,6 @@ fn test_expressions(avr: &mut AvrTester) {
             }
         }
     }
-
-    eprintln!("... ok");
-    eprintln!();
 }
 
 // ----

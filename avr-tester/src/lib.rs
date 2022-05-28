@@ -29,7 +29,7 @@ impl AvrTester {
         Self { sim, clock }
     }
 
-    /// Shorthand for `AvrTester::new("atmega328p", ...)`.
+    /// Shorthand for: `AvrTester::new("atmega328p", ...)`.
     pub fn atmega328p(firmware: impl AsRef<Path>, clock: u32) -> Self {
         Self::new("atmega328p", firmware, clock)
     }

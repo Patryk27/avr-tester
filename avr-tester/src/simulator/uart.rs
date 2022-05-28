@@ -1,18 +1,20 @@
 use super::*;
 use simavr_ffi as ffi;
-use std::{cell::UnsafeCell, collections::VecDeque, ffi::c_void};
+use std::{cell::UnsafeCell, collections::VecDeque, ptr::NonNull};
 
 pub struct Uart {
-    ptr: *mut UartT,
-    id: u8,
+    ptr: NonNull<UartT>,
+    id: char,
 }
 
 impl Uart {
-    pub fn new(id: u8) -> Self {
-        Self {
-            ptr: Box::into_raw(Default::default()),
-            id,
-        }
+    pub fn new(id: char) -> Self {
+        let ptr = Box::into_raw(Default::default());
+
+        // Unwrap-safety: `Box::into_raw()` doesn't return null pointers
+        let ptr = NonNull::new(ptr).unwrap();
+
+        Self { ptr, id }
     }
 
     pub fn try_init(self, avr: &mut Avr) -> Option<Self> {
@@ -23,9 +25,9 @@ impl Uart {
         //
         // Safety: `IoCtl::UartGetFlags` requires parameter of type `u32`, which
         //         is the case here
-        let result = unsafe { avr.ioctl(IoCtl::UartGetFlags { uart: self.id }, &mut flags) };
+        let status = unsafe { avr.ioctl(IoCtl::UartGetFlags { uart: self.id }, &mut flags) };
 
-        if result != 0 {
+        if status != 0 {
             return None;
         }
 
@@ -42,34 +44,51 @@ impl Uart {
             avr.ioctl(IoCtl::UartSetFlags { uart: self.id }, &mut flags);
         }
 
+        // ----
         // Now let's finalize everything by attaching to simavr's IRQs, so that
         // we can easily get notified when AVR sends something through UART.
-        //
-        // Safety: We check that all `avr_io_getirq()` invocations return
-        //         non-null pointers.
-        unsafe {
-            let ioctl = IoCtl::UartGetIrq { uart: self.id };
-            let irq_output = avr.io_getirq(ioctl, ffi::UART_IRQ_OUTPUT);
-            let irq_xon = avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XON);
-            let irq_xoff = avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XOFF);
 
-            if irq_output.is_null() || irq_xon.is_null() || irq_xoff.is_null() {
+        let ioctl = IoCtl::UartGetIrq { uart: self.id };
+
+        let irq_output = avr
+            .io_getirq(ioctl, ffi::UART_IRQ_OUTPUT)
+            .unwrap_or_else(|| {
                 panic!(
-                    "avr_io_getirq() failed (got a null pointer trying to initialize UART{})",
+                    "avr_io_getirq() failed (got a null pointer for UART{}'s output)",
                     self.id
-                );
-            }
+                )
+            });
 
-            ffi::avr_irq_register_notify(irq_output, Some(Self::on_output), self.ptr as *mut _);
-            ffi::avr_irq_register_notify(irq_xon, Some(Self::on_xon), self.ptr as *mut _);
-            ffi::avr_irq_register_notify(irq_xoff, Some(Self::on_xoff), self.ptr as *mut _);
+        let irq_xon = avr
+            .io_getirq(ioctl, ffi::UART_IRQ_OUT_XON)
+            .unwrap_or_else(|| {
+                panic!(
+                    "avr_io_getirq() failed (got a null pointer for UART{}'s XON)",
+                    self.id
+                )
+            });
+
+        let irq_xoff = avr
+            .io_getirq(ioctl, ffi::UART_IRQ_OUT_XOFF)
+            .unwrap_or_else(|| {
+                panic!(
+                    "avr_io_getirq() failed (got a null pointer for UART{}'s XOFF)",
+                    self.id
+                )
+            });
+
+        // Safety: All our callbacks match expected IRQs
+        unsafe {
+            avr.irq_register_notify(irq_output, Some(Self::on_output), self.ptr.as_ptr());
+            avr.irq_register_notify(irq_xon, Some(Self::on_xon), self.ptr.as_ptr());
+            avr.irq_register_notify(irq_xoff, Some(Self::on_xoff), self.ptr.as_ptr());
         }
 
         Some(self)
     }
 
     pub fn flush(&mut self, avr: &mut Avr) {
-        let this = unsafe { &*self.ptr };
+        let this = self.get();
         let mut irq = None;
 
         loop {
@@ -84,43 +103,44 @@ impl Uart {
             };
 
             let irq = irq.get_or_insert_with(|| {
-                let ioctl = IoCtl::UartGetIrq { uart: self.id }.into_ffi();
-                let irq = unsafe { ffi::avr_io_getirq(avr.ptr(), ioctl, ffi::UART_IRQ_INPUT as _) };
-
-                if irq.is_null() {
-                    panic!("avr_io_getirq() failed (got a null pointer)")
-                }
-
-                irq
+                // Unwrap-safety: If we've come far, then the chosen AVR
+                //                certainly supports this UART and there's no
+                //                reason for that instruction to panic
+                avr.io_getirq(IoCtl::UartGetIrq { uart: self.id }, ffi::UART_IRQ_INPUT)
+                    .unwrap()
             });
 
+            // Safety: `UART_IRQ_INPUT` is meant to send data through UART and
+            //         supports being raised with any byte-parameter
             unsafe {
-                ffi::avr_raise_irq(*irq, byte as _);
+                avr.raise_irq(*irq, byte as _);
             }
         }
     }
 
     pub fn recv(&mut self) -> Option<u8> {
-        let this = unsafe { &*self.ptr };
-
-        this.rx_pop()
+        self.get().rx_pop()
     }
 
     pub fn send(&mut self, byte: u8) {
-        let this = unsafe { &*self.ptr };
-
-        this.tx_push(byte);
+        self.get().tx_push(byte);
     }
 
-    unsafe extern "C" fn on_output(_: *mut ffi::avr_irq_t, value: u32, uart: *mut c_void) {
+    fn get(&self) -> &UartT {
+        // Safety: `self.ptr` is alive as long as `self` is plus it points at a
+        //         valid instance of `UartT`
+        unsafe { self.ptr.as_ref() }
+    }
+
+    unsafe extern "C" fn on_output(_: NonNull<ffi::avr_irq_t>, value: u32, uart: *mut UartT) {
         UartT::from_ptr(uart).rx_push(value as u8);
     }
 
-    unsafe extern "C" fn on_xon(_: *mut ffi::avr_irq_t, _: u32, uart: *mut c_void) {
+    unsafe extern "C" fn on_xon(_: NonNull<ffi::avr_irq_t>, _: u32, uart: *mut UartT) {
         UartT::from_ptr(uart).set_xon();
     }
 
-    unsafe extern "C" fn on_xoff(_: *mut ffi::avr_irq_t, _: u32, uart: *mut c_void) {
+    unsafe extern "C" fn on_xoff(_: NonNull<ffi::avr_irq_t>, _: u32, uart: *mut UartT) {
         UartT::from_ptr(uart).set_xoff();
     }
 }
@@ -128,7 +148,7 @@ impl Uart {
 impl Drop for Uart {
     fn drop(&mut self) {
         unsafe {
-            Box::from_raw(self.ptr);
+            Box::from_raw(self.ptr.as_ptr());
         }
     }
 }
@@ -143,7 +163,7 @@ pub struct UartT {
 impl UartT {
     const MAX_BYTES: usize = 16 * 1024;
 
-    unsafe fn from_ptr<'a>(uart: *mut c_void) -> &'a Self {
+    unsafe fn from_ptr<'a>(uart: *mut UartT) -> &'a Self {
         &*(uart as *mut Self)
     }
 

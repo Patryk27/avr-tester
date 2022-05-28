@@ -71,6 +71,15 @@ version = "0.1.72"
 source = "git+https://github.com/rust-lang/compiler-builtins#32c04774e75f1c7ce181dc7b4c715a365e696938"
 
 [[package]]
+name = "e2e-delay"
+version = "0.1.0"
+dependencies = [
+ "atmega-hal",
+ "avr-hal-generic",
+ "panic-halt",
+]
+
+[[package]]
 name = "e2e-pins"
 version = "0.1.0"
 dependencies = [

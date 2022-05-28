@@ -19,8 +19,8 @@ pub struct AvrSimulator {
 impl AvrSimulator {
     pub fn new(mcu: &'static str, clock: u32) -> Self {
         let mut avr = Avr::new(mcu).init(clock);
-        let uart0 = Uart::new(0).try_init(&mut avr);
-        let uart1 = Uart::new(1).try_init(&mut avr);
+        let uart0 = Uart::new('0').try_init(&mut avr);
+        let uart1 = Uart::new('1').try_init(&mut avr);
 
         Self {
             avr,
@@ -29,7 +29,7 @@ impl AvrSimulator {
     }
 
     pub fn flash(&mut self, path: impl AsRef<Path>) {
-        ElfFirmware::new().load(path).flash_to(&mut self.avr);
+        ElfFirmware::new().load(path).flash_on(&mut self.avr);
     }
 
     pub fn run(&mut self) -> (CpuState, CpuCyclesTaken) {
@@ -48,20 +48,18 @@ impl AvrSimulator {
         self.uart(id).send(byte)
     }
 
-    pub fn is_pin_high(&mut self, port: u8, pin: u8) -> bool {
-        Port::is_pin_high(&mut self.avr, port, pin)
+    pub fn set_pin_state(&mut self, port: char, pin: u8, high: bool) {
+        Port::set_pin_state(&mut self.avr, port, pin, high);
     }
 
-    // pub fn write_pin(&mut self, _port: u8, _pin: u8) {
-    //     todo!()
-
-    //     // avr_raise_irq(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('D'), 1), 1);
-    // }
+    pub fn pin_state(&mut self, port: char, pin: u8) -> bool {
+        Port::pin_state(&mut self.avr, port, pin)
+    }
 
     fn uart(&mut self, id: usize) -> &mut Uart {
         self.uarts
             .get_mut(id)
             .and_then(|uart| uart.as_mut())
-            .unwrap_or_else(|| panic!("Selected AVR doesn't support UART{}", id))
+            .unwrap_or_else(|| panic!("Chosen AVR doesn't support UART{}", id))
     }
 }

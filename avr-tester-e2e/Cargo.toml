@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "delay",
     "pins",
     "uart-eval",
     "uart-rot13",
