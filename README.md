@@ -52,12 +52,12 @@ fn test_pins() {
 }
 ```
 
-Note that this crate doesn't provide any way to get the `*.elf` file itself yet
-- usually you'll find it somewhere inside the `target` directory after running
-`cargo build --release` on your AVR crate.
+Note that this crate doesn't provide any way to get the `*.elf` file itself
+yet - usually you'll find it somewhere inside the `target` directory after
+running `cargo build --release` on your AVR crate.
 
 This means that the AvrTester-tests have to be provided somewhat _next to_ your
-AVR application, you can't easily have just single crate.
+AVR application, you can't easily have just a single crate.
 
 Hopefully https://github.com/rust-lang/cargo/issues/9096 will be able to
 simplify this.
