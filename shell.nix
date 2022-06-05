@@ -5,6 +5,7 @@ pkgs.mkShell {
     clang
     libelf
     pkg-config
+    zlib
 
     pkgsCross.avr.buildPackages.gcc
   ];

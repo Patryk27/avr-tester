@@ -1,10 +1,10 @@
 # avr-tester
 
 AvrTester provides a comfortable wrapper over [simavr](https://github.com/buserror/simavr)
-allowing you to easily test your AVR code _end-to-end_ by simulating the
-behavior of UARTs, GPIOs etc. -- test your code in seconds, not hours!
+that allows to test AVR binaries in isolation by simulating the behavior of
+UARTs, GPIOs etc. -- get your code tested in seconds!
 
-Status: work in progress, pretty alpha, not yet released.
+Status: alpha; work in progress; not yet released.
 
 ## Usage
 
