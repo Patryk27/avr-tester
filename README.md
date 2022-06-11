@@ -23,7 +23,7 @@ $ cargo new yourproject-tests --lib
 # yourproject-tests/Cargo.toml
 
 [dependencies]
-avr-tester = { git = "https://github.com/Patryk27/avr-tester" }
+avr-tester = "0.1"
 ```
 
 ... and, just like that, you can start writing tests:
@@ -44,26 +44,32 @@ fn avr() -> AvrTester {
 
 #[test]
 fn short_text() {
-    let mut avr = avr(); 
+    let mut avr = avr();
 
+    // Let's give our AVR a moment to initialize itself and UART:
     avr.run_for_ms(1);
-    avr.uart0().send_string("Hello, World!");
+
+    // Now, let's send the string:
+    avr.uart0().send("Hello, World!");
+
+    // ... give the AVR a moment to retrieve it & send back, encoded:
     avr.run_for_ms(1);
- 
-    assert_eq!("Uryyb, Jbeyq!", avr.uart0().recv_string());
+
+    // ... and, finally, assert the outcome:
+    assert_eq!("Uryyb, Jbeyq!", avr.uart0().recv::<String>());
 }
 
 #[test]
 fn long_text() {
-    let mut avr = avr(); 
+    let mut avr = avr();
 
     avr.run_for_ms(1);
-    avr.uart0().send_string("Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+    avr.uart0().send("Lorem ipsum dolor sit amet, consectetur adipiscing elit");
     avr.run_for_ms(1);
 
     assert_eq!(
         "Yberz vcfhz qbybe fvg nzrg, pbafrpgrghe nqvcvfpvat ryvg",
-        avr.uart0().recv_string(),
+        avr.uart0().recv::<String>(),
     );
 }
 ```
@@ -106,7 +112,7 @@ in AvrTester:
 
 ## Caveats
 
-- triggering AVR's sleep mode will cause the Rust code to gracefully `panic!()`,
+- Triggering AVR's sleep mode will cause the Rust code to gracefully `panic!()`,
   because the only way to wake an AVR is to trigger an interrupt and those are
   not yet supported.
 
