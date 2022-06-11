@@ -1,4 +1,10 @@
-use crate::simulator::AvrSimulator;
+mod analog_pin;
+mod digital_pin;
+
+use crate::AvrSimulator;
+use simavr_ffi as ffi;
+
+pub use self::{analog_pin::*, digital_pin::*};
 
 pub struct Pins<'a> {
     sim: &'a mut AvrSimulator,
@@ -8,165 +14,122 @@ impl<'a> Pins<'a> {
     pub(crate) fn new(sim: &'a mut AvrSimulator) -> Self {
         Self { sim }
     }
-
-    // ----
-
-    pub fn pb0(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 0)
-    }
-
-    pub fn pb1(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 1)
-    }
-
-    pub fn pb2(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 2)
-    }
-
-    pub fn pb3(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 3)
-    }
-
-    pub fn pb4(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 4)
-    }
-
-    pub fn pb5(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 5)
-    }
-
-    pub fn pb6(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 6)
-    }
-
-    pub fn pb7(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'B', 7)
-    }
-
-    // ----
-
-    pub fn pc0(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 0)
-    }
-
-    pub fn pc1(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 1)
-    }
-
-    pub fn pc2(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 2)
-    }
-
-    pub fn pc3(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 3)
-    }
-
-    pub fn pc4(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 4)
-    }
-
-    pub fn pc5(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 5)
-    }
-
-    pub fn pc6(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 6)
-    }
-
-    pub fn pc7(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'C', 7)
-    }
-
-    // ----
-
-    pub fn pd0(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 0)
-    }
-
-    pub fn pd1(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 1)
-    }
-
-    pub fn pd2(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 2)
-    }
-
-    pub fn pd3(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 3)
-    }
-
-    pub fn pd4(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 4)
-    }
-
-    pub fn pd5(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 5)
-    }
-
-    pub fn pd6(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 6)
-    }
-
-    pub fn pd7(&mut self) -> Pin<'_> {
-        Pin::new(self.sim, 'D', 7)
-    }
 }
 
-pub struct Pin<'a> {
-    sim: &'a mut AvrSimulator,
-    port: char,
-    pin: u8,
-}
-
-impl<'a> Pin<'a> {
-    fn new(sim: &'a mut AvrSimulator, port: char, pin: u8) -> Self {
-        Self { sim, port, pin }
-    }
-
-    /// Changes pin's state to low / high.
-    pub fn set(&mut self, high: bool) {
-        self.sim.set_pin_state(self.port, self.pin, high);
-    }
-
-    /// Changes pin's state to low.
-    pub fn set_low(&mut self) {
-        self.set(false);
-    }
-
-    /// Changes pin's state to high.
-    pub fn set_high(&mut self) {
-        self.set(true);
-    }
-
-    /// Returns whether pin's state is low.
-    pub fn is_low(&mut self) -> bool {
-        !self.is_high()
-    }
-
-    /// Returns whether pin's state is high.
-    pub fn is_high(&mut self) -> bool {
-        self.sim.pin_state(self.port, self.pin)
-    }
-
-    /// Asserts that pin's state is high / low.
-    #[track_caller]
-    pub fn assert(&mut self, high: bool) {
-        if high {
-            self.assert_high();
-        } else {
-            self.assert_low();
+macro_rules! analog_pins {
+    ( $( $fn:ident($irq:expr) ),* $(,)? ) => {
+        impl<'a> Pins<'a> {
+            $(
+                pub fn $fn(&mut self) -> AnalogPin<'_> {
+                    AnalogPin::new(self.sim, $irq)
+                }
+            )*
         }
     }
+}
 
-    /// Asserts that pin's state is low.
-    #[track_caller]
-    pub fn assert_low(&mut self) {
-        assert!(self.is_low());
-    }
+analog_pins! {
+    adc0(ffi::ADC_IRQ_ADC0),
+    adc1(ffi::ADC_IRQ_ADC1),
+    adc2(ffi::ADC_IRQ_ADC2),
+    adc3(ffi::ADC_IRQ_ADC3),
+    adc4(ffi::ADC_IRQ_ADC4),
+    adc5(ffi::ADC_IRQ_ADC5),
+    adc6(ffi::ADC_IRQ_ADC6),
+    adc7(ffi::ADC_IRQ_ADC7),
+    adc8(ffi::ADC_IRQ_ADC8),
+    adc9(ffi::ADC_IRQ_ADC9),
+    adc10(ffi::ADC_IRQ_ADC10),
+    adc11(ffi::ADC_IRQ_ADC11),
+    adc12(ffi::ADC_IRQ_ADC12),
+    adc13(ffi::ADC_IRQ_ADC13),
+    adc14(ffi::ADC_IRQ_ADC14),
+    adc15(ffi::ADC_IRQ_ADC15),
+    temp(ffi::ADC_IRQ_TEMP),
+}
 
-    /// Asserts that pin's state is high.
-    #[track_caller]
-    pub fn assert_high(&mut self) {
-        assert!(self.is_high());
+macro_rules! digital_pins {
+    ( $( $fn:ident($port:expr, $pin:expr) ),* $(,)? ) => {
+        impl<'a> Pins<'a> {
+            $(
+                pub fn $fn(&mut self) -> DigitalPin<'_> {
+                    DigitalPin::new(self.sim, $port, $pin)
+                }
+            )*
+        }
     }
+}
+
+digital_pins! {
+    pa0('A', 0),
+    pa1('A', 1),
+    pa2('A', 2),
+    pa3('A', 3),
+    pa4('A', 4),
+    pa5('A', 5),
+    pa6('A', 6),
+    pa7('A', 7),
+    //
+    pb0('B', 0),
+    pb1('B', 1),
+    pb2('B', 2),
+    pb3('B', 3),
+    pb4('B', 4),
+    pb5('B', 5),
+    pb6('B', 6),
+    pb7('B', 7),
+    //
+    pc0('C', 0),
+    pc1('C', 1),
+    pc2('C', 2),
+    pc3('C', 3),
+    pc4('C', 4),
+    pc5('C', 5),
+    pc6('C', 6),
+    pc7('C', 7),
+    //
+    pd0('D', 0),
+    pd1('D', 1),
+    pd2('D', 2),
+    pd3('D', 3),
+    pd4('D', 4),
+    pd5('D', 5),
+    pd6('D', 6),
+    pd7('D', 7),
+    //
+    pe0('E', 0),
+    pe1('E', 1),
+    pe2('E', 2),
+    pe3('E', 3),
+    pe4('E', 4),
+    pe5('E', 5),
+    pe6('E', 6),
+    pe7('E', 7),
+    //
+    pf0('F', 0),
+    pf1('F', 1),
+    pf2('F', 2),
+    pf3('F', 3),
+    pf4('F', 4),
+    pf5('F', 5),
+    pf6('F', 6),
+    pf7('F', 7),
+    //
+    pg0('G', 0),
+    pg1('G', 1),
+    pg2('G', 2),
+    pg3('G', 3),
+    pg4('G', 4),
+    pg5('G', 5),
+    pg6('G', 6),
+    pg7('G', 7),
+    //
+    ph0('H', 0),
+    ph1('H', 1),
+    ph2('H', 2),
+    ph3('H', 3),
+    ph4('H', 4),
+    ph5('H', 5),
+    ph6('H', 6),
+    ph7('H', 7),
 }

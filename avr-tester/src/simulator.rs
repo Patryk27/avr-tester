@@ -1,29 +1,42 @@
+mod adcs;
 mod avr;
 mod cpu_cycles_taken;
 mod cpu_state;
 mod elf_firmware;
 mod ioctl;
-mod port;
+mod logs;
+mod ports;
 mod uart;
 
-use self::{avr::*, elf_firmware::*, ioctl::*, port::*, uart::*};
+use self::{adcs::*, avr::*, elf_firmware::*, ioctl::*, ports::*, uart::*};
+use simavr_ffi as ffi;
 use std::path::Path;
 
 pub use self::{cpu_cycles_taken::*, cpu_state::*};
 
+/// Middle-ground between simavr and AvrTester; provides access to the UARTs,
+/// pins etc. without wrapping them in a beautiful plastic foil.
 pub struct AvrSimulator {
     avr: Avr,
+    adcs: Option<Adcs>,
+    ports: Ports,
     uarts: [Option<Uart>; 2],
 }
 
 impl AvrSimulator {
-    pub fn new(mcu: &'static str, clock: u32) -> Self {
+    pub fn new(mcu: &str, clock: u32) -> Self {
+        logs::init();
+
         let mut avr = Avr::new(mcu).init(clock);
+        let adcs = Adcs::new().try_init(&mut avr);
+        let ports = Ports::new();
         let uart0 = Uart::new('0').try_init(&mut avr);
         let uart1 = Uart::new('1').try_init(&mut avr);
 
         Self {
             avr,
+            adcs,
+            ports,
             uarts: [uart0, uart1],
         }
     }
@@ -48,12 +61,19 @@ impl AvrSimulator {
         self.uart(id).send(byte)
     }
 
-    pub fn set_pin_state(&mut self, port: char, pin: u8, high: bool) {
-        Port::set_pin_state(&mut self.avr, port, pin, high);
+    pub fn set_pin_high(&mut self, port: char, pin: u8, high: bool) {
+        self.ports.set_pin_high(&mut self.avr, port, pin, high);
     }
 
-    pub fn pin_state(&mut self, port: char, pin: u8) -> bool {
-        Port::pin_state(&mut self.avr, port, pin)
+    pub fn is_pin_high(&mut self, port: char, pin: u8) -> bool {
+        self.ports.is_pin_high(&mut self.avr, port, pin)
+    }
+
+    pub fn set_adc_voltage(&mut self, pin: u8, voltage: u32) {
+        self.adcs
+            .as_mut()
+            .expect("Chosen AVR doesn't support ADC")
+            .set_voltage(pin, voltage);
     }
 
     fn uart(&mut self, id: usize) -> &mut Uart {

@@ -1,9 +1,9 @@
 use super::*;
-use simavr_ffi as ffi;
 use std::{cell::UnsafeCell, collections::VecDeque, ptr::NonNull};
 
+/// Provides access to simavr's UARTs.
 pub struct Uart {
-    ptr: NonNull<UartT>,
+    ptr: NonNull<UartInner>,
     id: char,
 }
 
@@ -77,7 +77,7 @@ impl Uart {
                 )
             });
 
-        // Safety: All our callbacks match expected IRQs
+        // Safety: All of our callbacks match the expected IRQs
         unsafe {
             avr.irq_register_notify(irq_output, Some(Self::on_output), self.ptr.as_ptr());
             avr.irq_register_notify(irq_xon, Some(Self::on_xon), self.ptr.as_ptr());
@@ -92,18 +92,22 @@ impl Uart {
         let mut irq = None;
 
         loop {
-            if !this.is_xon() {
+            // Safety: `&mut self` ensures that while we are working, simavr
+            //         won't interrupt us
+            if unsafe { !this.is_xon() } {
                 break;
             }
 
-            let byte = if let Some(byte) = this.tx_pop() {
+            // Safety: `&mut self` ensures that while we are working, simavr
+            //         won't interrupt us
+            let byte = if let Some(byte) = unsafe { this.pop_tx() } {
                 byte
             } else {
                 break;
             };
 
             let irq = irq.get_or_insert_with(|| {
-                // Unwrap-safety: If we've come far, then the chosen AVR
+                // Unwrap-safety: Since we've come this far, then the chosen AVR
                 //                certainly supports this UART and there's no
                 //                reason for that instruction to panic
                 avr.io_getirq(IoCtl::UartGetIrq { uart: self.id }, ffi::UART_IRQ_INPUT)
@@ -119,29 +123,34 @@ impl Uart {
     }
 
     pub fn recv(&mut self) -> Option<u8> {
-        self.get().rx_pop()
+        // Safety: `&mut self` ensures that while we are working, simavr won't
+        //         interrupt us
+        unsafe { self.get().pop_rx() }
     }
 
     pub fn send(&mut self, byte: u8) {
-        self.get().tx_push(byte);
+        // Safety: `&mut self` ensures that while we are working, simavr won't
+        //         interrupt us
+        unsafe {
+            self.get().push_tx(byte);
+        }
     }
 
-    fn get(&self) -> &UartT {
-        // Safety: `self.ptr` is alive as long as `self` is plus it points at a
-        //         valid instance of `UartT`
+    fn get(&self) -> &UartInner {
+        // Safety: `self.ptr` is alive as long as `self`
         unsafe { self.ptr.as_ref() }
     }
 
-    unsafe extern "C" fn on_output(_: NonNull<ffi::avr_irq_t>, value: u32, uart: *mut UartT) {
-        UartT::from_ptr(uart).rx_push(value as u8);
+    unsafe extern "C" fn on_output(_: NonNull<ffi::avr_irq_t>, value: u32, uart: *mut UartInner) {
+        UartInner::from_ptr(uart).push_rx(value as u8);
     }
 
-    unsafe extern "C" fn on_xon(_: NonNull<ffi::avr_irq_t>, _: u32, uart: *mut UartT) {
-        UartT::from_ptr(uart).set_xon();
+    unsafe extern "C" fn on_xon(_: NonNull<ffi::avr_irq_t>, _: u32, uart: *mut UartInner) {
+        UartInner::from_ptr(uart).set_xon();
     }
 
-    unsafe extern "C" fn on_xoff(_: NonNull<ffi::avr_irq_t>, _: u32, uart: *mut UartT) {
-        UartT::from_ptr(uart).set_xoff();
+    unsafe extern "C" fn on_xoff(_: NonNull<ffi::avr_irq_t>, _: u32, uart: *mut UartInner) {
+        UartInner::from_ptr(uart).set_xoff();
     }
 }
 
@@ -154,65 +163,94 @@ impl Drop for Uart {
 }
 
 #[derive(Debug)]
-pub struct UartT {
+struct UartInner {
     rx: UnsafeCell<VecDeque<u8>>,
     tx: UnsafeCell<VecDeque<u8>>,
     xon: UnsafeCell<bool>,
 }
 
-impl UartT {
+impl UartInner {
     const MAX_BYTES: usize = 16 * 1024;
 
-    unsafe fn from_ptr<'a>(uart: *mut UartT) -> &'a Self {
+    unsafe fn from_ptr<'a>(uart: *mut UartInner) -> &'a Self {
         &*(uart as *mut Self)
     }
 
-    pub fn rx_push(&self, value: u8) {
-        let rx = unsafe { &mut *self.rx.get() };
+    /// Called by simavr when the AVR transmits a byte.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::rx_pop()`].
+    unsafe fn push_rx(&self, value: u8) {
+        let rx = &mut *self.rx.get();
 
         if rx.len() < Self::MAX_BYTES {
             rx.push_back(value);
         }
     }
 
-    pub fn rx_pop(&self) -> Option<u8> {
-        let rx = unsafe { &mut *self.rx.get() };
-
-        rx.pop_front()
+    /// Called by AvrTester's user when they want to retrieve a byte already
+    /// transmitted by AVR.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::push_rx()`].
+    unsafe fn pop_rx(&self) -> Option<u8> {
+        (&mut *self.rx.get()).pop_front()
     }
 
-    pub fn tx_push(&self, value: u8) {
-        let tx = unsafe { &mut *self.tx.get() };
-
-        tx.push_back(value);
+    /// Called by AvrTester's user when they want to transmit a byte.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::pop_tx()`].
+    unsafe fn push_tx(&self, value: u8) {
+        (&mut *self.tx.get()).push_back(value);
     }
 
-    pub fn tx_pop(&self) -> Option<u8> {
-        let tx = unsafe { &mut *self.tx.get() };
-
-        tx.pop_front()
+    /// Called by simavr when the AVR is ready to retrieve a byte.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::push_tx()`].
+    unsafe fn pop_tx(&self) -> Option<u8> {
+        (&mut *self.tx.get()).pop_front()
     }
 
-    pub fn is_xon(&self) -> bool {
-        let xon = unsafe { &mut *self.xon.get() };
-
-        *xon
+    /// Called by AvrTester to check whether the AVR is ready to retrieve a
+    /// byte.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::set_xon()`] or
+    /// [`Self::set_xoff()`].
+    unsafe fn is_xon(&self) -> bool {
+        *self.xon.get()
     }
 
-    pub fn set_xon(&self) {
-        let xon = unsafe { &mut *self.xon.get() };
-
-        *xon = true;
+    /// Called by simavr when the AVR's UART buffer is full.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::is_xon()`] or
+    /// [`Self::set_xoff()`].
+    unsafe fn set_xon(&self) {
+        *self.xon.get() = true;
     }
 
-    pub fn set_xoff(&self) {
-        let xon = unsafe { &mut *self.xon.get() };
-
-        *xon = false;
+    /// Called by simavr when the AVR's UART buffer is ready to accept more
+    /// bytes.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::is_xon()`] or
+    /// [`Self::set_xon()`].
+    unsafe fn set_xoff(&self) {
+        *self.xon.get() = false;
     }
 }
 
-impl Default for UartT {
+impl Default for UartInner {
     fn default() -> Self {
         Self {
             rx: Default::default(),

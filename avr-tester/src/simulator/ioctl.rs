@@ -1,20 +1,22 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IoCtl {
-    IoPortGetState { port: char },
+    AdcGetIrq,
     IoPortGetIrq { port: char },
-    UartSetFlags { uart: char },
+    IoPortGetState { port: char },
     UartGetFlags { uart: char },
     UartGetIrq { uart: char },
+    UartSetFlags { uart: char },
 }
 
 impl IoCtl {
     pub fn into_ffi(self) -> u32 {
         let ctl = match self {
-            IoCtl::IoPortGetState { port } => [b'i', b'o', b's', port as u8],
+            IoCtl::AdcGetIrq => [b'a', b'd', b'c', b'0'],
             IoCtl::IoPortGetIrq { port } => [b'i', b'o', b'g', port as u8],
-            IoCtl::UartSetFlags { uart } => [b'u', b'a', b's', uart as u8],
+            IoCtl::IoPortGetState { port } => [b'i', b'o', b's', port as u8],
             IoCtl::UartGetFlags { uart } => [b'u', b'a', b'g', uart as u8],
             IoCtl::UartGetIrq { uart } => [b'u', b'a', b'r', uart as u8],
+            IoCtl::UartSetFlags { uart } => [b'u', b'a', b's', uart as u8],
         };
 
         u32::from_be_bytes(ctl)
@@ -33,6 +35,11 @@ mod tests {
             given: IoCtl,
             expected: [u8; 4],
         }
+
+        const TEST_ADC_GET_IRQ: TestCase = TestCase {
+            given: IoCtl::AdcGetIrq,
+            expected: [b'a', b'd', b'c', b'0'],
+        };
 
         const TEST_IOPORT_GET_STATE: TestCase = TestCase {
             given: IoCtl::IoPortGetState { port: 'C' },
@@ -59,6 +66,7 @@ mod tests {
             expected: [b'u', b'a', b'r', b'3'],
         };
 
+        #[test_case(TEST_ADC_GET_IRQ)]
         #[test_case(TEST_IOPORT_GET_STATE)]
         #[test_case(TEST_IOPORT_GET_IRQ)]
         #[test_case(TEST_UART_SET_FLAGS)]

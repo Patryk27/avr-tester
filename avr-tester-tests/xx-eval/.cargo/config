@@ -1,0 +1,5 @@
+[build]
+target = "../.cargo/targets/atmega328p.json"
+
+[unstable]
+build-std = ["core"]

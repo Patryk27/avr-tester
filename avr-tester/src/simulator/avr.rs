@@ -1,5 +1,4 @@
 use super::*;
-use simavr_ffi as ffi;
 use std::ffi::CString;
 use std::os::raw::c_int;
 use std::ptr::NonNull;
@@ -11,7 +10,7 @@ pub struct Avr {
 }
 
 impl Avr {
-    pub fn new(mcu: &'static str) -> Self {
+    pub fn new(mcu: &str) -> Self {
         let c_mcu = CString::new(mcu).unwrap();
         let ptr = unsafe { ffi::avr_make_mcu_by_name(c_mcu.as_ptr()) };
 

@@ -1,80 +1,143 @@
 # avr-tester
 
-AvrTester provides a comfortable wrapper over [simavr](https://github.com/buserror/simavr)
-that allows to test AVR binaries in isolation by simulating the behavior of
-UARTs, GPIOs etc. -- get your code tested in seconds!
+Functional testing framework for [AVR] binaries, powered by [simavr].
 
-Status: alpha; work in progress; not yet released.
+tl;dr get your microcontroller's firmware black-box-tested in seconds!
 
-## Usage
+Status: alpha; work in progress.
 
-Assuming your AVR code has been already compiled somewhere, plugging AvrTester
-is as easy as creating a new crate with:
+[AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
+[simavr]: https://github.com/buserror/simavr
+
+## Getting Started
+
+First, create a separate crate, dedicated only to your project's tests:
+
+```shell
+$ cargo new yourproject-tests --lib
+```
+
+... then add `avr-tester` as its dependency:
 
 ```toml
+# yourproject-tests/Cargo.toml
+
 [dependencies]
 avr-tester = { git = "https://github.com/Patryk27/avr-tester" }
 ```
 
-... and then:
+... and, just like that, you can start writing tests:
 
 ```rust
+// yourproject-tests/src/lib.rs
+
 use avr_tester::AvrTester;
 
-fn main() {
-    //
+fn avr() -> AvrTester {
+    AvrTester::atmega328p()
+        .with_clock_of_16_mhz()
+        .load("../../yourproject/target/atmega328p/release/your-project.elf")
 }
 
-// Assuming `firmware-uart.elf` implements some sort of rot13 encoder:
+// Assuming `your-project` is a ROT-13 encoder, one could write tests such as
+// those:
+
 #[test]
-fn test_uart() {
-    let mut avr = AvrTester::atmega328p("firmware-uart.elf", 16_000_000);
+fn short_text() {
+    let mut avr = avr(); 
 
     avr.run_for_ms(1);
-    avr.uart0().send_string("Hello!");
-    avr.run_for_ms(5);
-    
-    assert_eq!("Uryyb!", avr.uart0().recv_string());
+    avr.uart0().send_string("Hello, World!");
+    avr.run_for_ms(1);
+ 
+    assert_eq!("Uryyb, Jbeyq!", avr.uart0().recv_string());
 }
 
-// Assuming `firmware-pins.elf` implements some sort of `pc2 = !pc1` logic:
 #[test]
-fn test_pins() {
-    let mut avr = AvrTester::atmega328p("firmware-pins.elf", 16_000_000);
+fn long_text() {
+    let mut avr = avr(); 
 
-    avr.pins().pc1().set_high();
     avr.run_for_ms(1);
-    avr.pins().pc2().assert_low();
+    avr.uart0().send_string("Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+    avr.run_for_ms(1);
 
-    avr.pins().pc1().set_low();
-    avr.run_for_ms(1);
-    avr.pins().pc2().assert_high();
+    assert_eq!(
+        "Yberz vcfhz qbybe fvg nzrg, pbafrpgrghe nqvcvfpvat ryvg",
+        avr.uart0().recv_string(),
+    );
 }
 ```
 
-Note that this crate doesn't provide any way to get the `*.elf` file itself
-yet - usually you'll find it somewhere inside the `target` directory after
-running `cargo build --release` on your AVR crate.
+... having the tests ready (and [requirements](#requirements) met!), just run
+`cargo test` inside `yourproject-tests` :-)
 
-This means that the AvrTester-tests have to be provided somewhat _next to_ your
-AVR application, you can't easily have just a single crate.
+Note that because AvrTester _simulates an actual AVR_, you don't have to modify
+`yourproject` at all - it's free to use timers, GPIOs etc. and everything should
+just work.
 
-Hopefully https://github.com/rust-lang/cargo/issues/9096 will be able to
-simplify this.
+In fact, `yourproject` doesn't even have to be written in Rust - you can create
+Rust-based tests for a firmware written in C, Zig or anything else!
 
-## Requirements
+## Usage
 
-AvrTester depends on [simavr-ffi](https://github.com/Patryk27/simavr-ffi), so:
+- [Testing analog pins](avr-tester/tests/tests/pins-analog.rs),
+- [Testing digital pins](avr-tester/tests/tests/pins-digital.rs),
+- [Testing UARTs](avr-tester/tests/tests/uart.rs).
 
-- clang (with `LIBCLANG_PATH` set),
-- libelf,
-- pkg-config.
+## Requirements & supported platforms
 
-## Testing
+See: [simavr-ffi](https://github.com/Patryk27/simavr-ffi).
+
+## Roadmap
+
+Following features seem to be supported by simavr, but haven't been yet exposed
+in AvrTester:
+
+- interrupts,
+- EEPROM,
+- SPI,
+- I2C,
+- watchdog,
+- TWI,
+- <https://lib.rs/crates/simavr-section>,
+- USB.
+
+(i.e. your firmware can use those features, but you won't be able to test them.)
+
+## Caveats
+
+- triggering AVR's sleep mode will cause the Rust code to gracefully `panic!()`,
+  because the only way to wake an AVR is to trigger an interrupt and those are
+  not yet supported.
+
+## Contributing
+
+Pull requests are very much welcome!
+
+### Tests
+
+AvrTester's integration tests lay in `avr-tester/tests` - you can run them with:
 
 ```shell
 $ cd avr-tester
 $ cargo test
+```
+
+Note that for those tests to work, you might need some additional
+dependencies:
+
+#### ... on Nix
+
+```shell
+$ nix-shell
+# and then `cargo test`
+```
+
+#### ... on Ubuntu
+
+```shell
+$ sudo apt install avr-libc gcc-avr
+# and then `cargo test`
 ```
 
 ## License

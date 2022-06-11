@@ -1,5 +1,4 @@
 use super::*;
-use simavr_ffi as ffi;
 use std::{alloc, ffi::CString, path::Path, ptr::NonNull};
 
 /// Convenient wrapper over [`ffi::elf_firmware_t`].

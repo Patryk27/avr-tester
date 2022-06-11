@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "pins-analog",
+    "pins-digital",
+    "uart",
+    "xx-bits",
+    "xx-eval",
+]
+
+[profile.release]
+codegen-units = 1
+panic = "abort"

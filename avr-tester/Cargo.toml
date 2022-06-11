@@ -2,6 +2,12 @@
 name = "avr-tester"
 version = "0.1.0"
 edition = "2021"
+authors = ["Patryk Wychowaniec <pwychowaniec@pm.me>"]
+license = "MIT"
+description = "Functional testing framework for AVR binaries"
+readme = "README.md"
+repository = "https://github.com/Patryk27/avr-tester"
+keywords = ["avr", "test", "testing", "framework", "microcontroller", "simavr"]
 
 [dependencies]
 simavr-ffi = { git = "https://github.com/Patryk27/simavr-ffi" }
