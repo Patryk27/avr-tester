@@ -1,4 +1,9 @@
-# avr-tester
+# avr-tester &emsp; [![crates-badge]][crates-link] [![docs-badge]][docs-link]
+
+[crates-badge]: https://img.shields.io/crates/v/avr-tester.svg
+[crates-link]: https://crates.io/crates/avr-tester
+[docs-badge]: https://img.shields.io/docsrs/avr-tester
+[docs-link]: https://docs.rs/avr-tester
 
 Functional testing framework for [AVR] binaries, powered by [simavr].
 
