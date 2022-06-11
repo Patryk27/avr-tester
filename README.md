@@ -79,8 +79,8 @@ fn long_text() {
 }
 ```
 
-... having the tests ready (and [requirements](#requirements) met!), just run
-`cargo test` inside `yourproject-tests` :-)
+... having the tests ready (and [requirements](#requirements--supported-platforms)
+met!), just run `cargo test` inside `yourproject-tests` :-)
 
 Note that because AvrTester _simulates an actual AVR_, you don't have to modify
 `yourproject` at all - it's free to use timers, GPIOs etc. and everything should
