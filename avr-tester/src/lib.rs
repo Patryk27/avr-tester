@@ -31,8 +31,6 @@
 //!
 //! For more details, please see: [./README.md].
 
-#![feature(maybe_uninit_uninit_array)]
-
 mod builder;
 mod pins;
 mod simulator;
