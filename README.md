@@ -41,10 +41,10 @@ use avr_tester::AvrTester;
 fn avr() -> AvrTester {
     AvrTester::atmega328p()
         .with_clock_of_16_mhz()
-        .load("../../yourproject/target/atmega328p/release/your-project.elf")
+        .load("../../yourproject/target/atmega328p/release/yourproject.elf")
 }
 
-// Assuming `your-project` is a ROT-13 encoder, one could write tests such as
+// Assuming `yourproject` is a ROT-13 encoder, one could imagine tests such as
 // those:
 
 #[test]

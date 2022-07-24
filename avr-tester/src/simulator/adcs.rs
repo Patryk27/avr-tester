@@ -69,14 +69,14 @@ struct AdcInner {
 impl AdcInner {
     /// # Safety
     ///
-    /// Cannot be called simultaneously with [`Self::push_voltage()`].
+    /// Cannot be called simultaneously with [`Self::pop_voltage()`].
     unsafe fn push_voltage(&self, id: AdcId, voltage: AdcVoltage) {
         (&mut *self.voltages.get()).push_back((id, voltage));
     }
 
     /// # Safety
     ///
-    /// Cannot be called simultaneously with [`Self::pop_voltage()`].
+    /// Cannot be called simultaneously with [`Self::push_voltage()`].
     unsafe fn pop_voltage(&self) -> Option<(AdcId, AdcVoltage)> {
         (&mut *self.voltages.get()).pop_front()
     }

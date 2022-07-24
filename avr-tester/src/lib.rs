@@ -1,9 +1,35 @@
-//! Functional testing framework for [AVR] binaries, powered by [simavr].
+//! Functional testing framework for [AVR] binaries, powered by [simavr]:
+//!
+//! ```no_run
+//! use avr_tester::AvrTester;
+//!
+//! // Assuming `yourproject` is a ROT-13 encoder, one could write a test such
+//! // as this:
+//!
+//! #[test]
+//! fn test() {
+//!     let mut avr = AvrTester::atmega328p()
+//!         .with_clock_of_16_mhz()
+//!         .load("../../yourproject/target/atmega328p/release/yourproject.elf");
+//!
+//!     // Let's give our AVR a moment to initialize itself and UART:
+//!     avr.run_for_ms(1);
+//!
+//!     // Now, let's send the string:
+//!     avr.uart0().send("Hello, World!");
+//!
+//!     // ... give the AVR a moment to retrieve it & send back, encoded:
+//!     avr.run_for_ms(1);
+//!
+//!     // ... and, finally, assert the outcome:
+//!     assert_eq!("Uryyb, Jbeyq!", avr.uart0().recv::<String>());
+//! }
+//! ```
 //!
 //! [AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
 //! [simavr]: https://github.com/buserror/simavr
 //!
-//! For more details, please see this repository's README.
+//! For more details, please see: [./README.md].
 
 #![feature(maybe_uninit_uninit_array)]
 
@@ -17,13 +43,8 @@ use std::path::Path;
 
 pub use self::{builder::*, pins::*, simulator::CpuCyclesTaken, uart::*};
 
-/// A comfortable wrapper over [simavr] that allows to test [AVR] binaries in
-/// seconds.
-///
-/// [simavr]: https://github.com/buserror/simavr
-/// [AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
-///
-/// For more details, please see this repository's README.
+/// Simulator's entry point; you can build it using [`AvrTester::atmega328p()`]
+/// or a similar function.
 pub struct AvrTester {
     sim: AvrSimulator,
     clock: u32,
@@ -44,8 +65,11 @@ impl AvrTester {
     /// Note that the number returned here is somewhat approximate (see:
     /// [`CpuCyclesTaken`]).
     ///
-    /// See also: [`Self::run_for_s()`], [`Self::run_for_ms()`],
-    /// [`Self::run_for_us()`].
+    /// See also:
+    ///
+    /// - [`Self::run_for_s()`],
+    /// - [`Self::run_for_ms()`],
+    /// - [`Self::run_for_us()`].
     pub fn run(&mut self) -> CpuCyclesTaken {
         let (state, cycles_taken) = self.sim.run();
 
@@ -75,8 +99,11 @@ impl AvrTester {
 
     /// Runs code for given number of cycles.
     ///
-    /// See also: [`Self::run_for_s()`], [`Self::run_for_ms()`],
-    /// [`Self::run_for_us()`].
+    /// See also:
+    ///
+    /// - [`Self::run_for_s()`],
+    /// - [`Self::run_for_ms()`],
+    /// - [`Self::run_for_us()`].
     pub fn run_for(&mut self, mut cycles: u64) {
         while cycles > 0 {
             cycles = cycles.saturating_sub(self.run().get().max(1));
@@ -86,7 +113,10 @@ impl AvrTester {
     /// Runs code for given number of _AVR_ seconds, considering the clock
     /// specified through [`AvrTesterBuilder::with_clock()`].
     ///
-    /// See: [`Self::run_for_ms()`], [`Self::run_for_us()`].
+    /// See:
+    ///
+    /// - [`Self::run_for_ms()`],
+    /// - [`Self::run_for_us()`].
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_s(&mut self, s: u32) {
@@ -99,7 +129,10 @@ impl AvrTester {
     /// Runs code for given number of _AVR_ milliseconds, considering the clock
     /// specified through [`AvrTesterBuilder::with_clock()`].
     ///
-    /// See: [`Self::run_for_s()`], [`Self::run_for_us()`].
+    /// See:
+    ///
+    /// - [`Self::run_for_s()`],
+    /// - [`Self::run_for_us()`].
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_ms(&mut self, ms: u32) {
@@ -112,7 +145,10 @@ impl AvrTester {
     /// Runs code for given number of _AVR_ microseconds, considering the clock
     /// specified through [`AvrTesterBuilder::with_clock()`].
     ///
-    /// See: [`Self::run_for_s()`], [`Self::run_for_ms()`].
+    /// See:
+    ///
+    /// - [`Self::run_for_s()`],
+    /// - [`Self::run_for_ms()`].
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_us(&mut self, us: u32) {

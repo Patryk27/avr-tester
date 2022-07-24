@@ -33,7 +33,7 @@ use std::{path::Path, process::Command};
 /// fn avr() -> AvrTester {
 ///     AvrTester::atmega328p()
 ///         .with_clock_of_16_mhz()
-///         .load("../../yourproject/target/atmega328p/release/your-project.elf")
+///         .load("../../yourproject/target/atmega328p/release/yourproject.elf")
 /// }
 /// ```
 pub fn avr(test: &str) -> AvrTester {
