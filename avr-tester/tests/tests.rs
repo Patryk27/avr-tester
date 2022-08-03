@@ -16,12 +16,12 @@ mod xx_bits;
 mod xx_eval;
 
 mod prelude {
-    pub use super::avr;
+    pub use super::{avr, avr_with};
     pub use avr_tester::*;
     pub use rand::prelude::*;
 }
 
-use avr_tester::AvrTester;
+use avr_tester::{AvrTester, AvrTesterBuilder};
 use std::{path::Path, process::Command};
 
 /// Compiles `test` and returns `AvrTester` for it.
@@ -37,6 +37,14 @@ use std::{path::Path, process::Command};
 /// }
 /// ```
 pub fn avr(test: &str) -> AvrTester {
+    avr_with(test, |avr| avr)
+}
+
+/// See: [`avr()`].
+pub fn avr_with(
+    test: &str,
+    configure: impl FnOnce(AvrTesterBuilder) -> AvrTesterBuilder,
+) -> AvrTester {
     eprintln!("Building firmware");
 
     let tests_dir = Path::new("..").join("avr-tester-tests");
@@ -59,5 +67,8 @@ pub fn avr(test: &str) -> AvrTester {
 
     eprintln!("Starting test");
 
-    AvrTester::atmega328().with_clock_of_16_mhz().load(firmware)
+    let avr = AvrTester::atmega328().with_clock_of_16_mhz();
+    let avr = configure(avr);
+
+    avr.load(firmware)
 }

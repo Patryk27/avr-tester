@@ -45,16 +45,26 @@ pub use self::{builder::*, pins::*, simulator::CpuCyclesTaken, uart::*};
 /// or a similar function.
 pub struct AvrTester {
     sim: AvrSimulator,
-    clock: u32,
+    clock_frequency: u32,
+    remaining_clock_cycles: Option<u64>,
 }
 
 impl AvrTester {
-    pub(crate) fn new(mcu: &str, firmware: impl AsRef<Path>, clock: u32) -> Self {
-        let mut sim = AvrSimulator::new(mcu, clock);
+    pub(crate) fn new(
+        mcu: &str,
+        firmware: impl AsRef<Path>,
+        clock_frequency: u32,
+        remaining_clock_cycles: Option<u64>,
+    ) -> Self {
+        let mut sim = AvrSimulator::new(mcu, clock_frequency);
 
         sim.flash(firmware);
 
-        Self { sim, clock }
+        Self {
+            sim,
+            clock_frequency,
+            remaining_clock_cycles,
+        }
     }
 
     /// Runs a full single instruction, returning the number of cycles it took
@@ -70,6 +80,14 @@ impl AvrTester {
     /// - [`Self::run_for_us()`].
     pub fn run(&mut self) -> CpuCyclesTaken {
         let (state, cycles_taken) = self.sim.run();
+
+        if let Some(remaining_clock_cycles) = &mut self.remaining_clock_cycles {
+            *remaining_clock_cycles = remaining_clock_cycles.saturating_sub(cycles_taken.get());
+
+            if *remaining_clock_cycles == 0 {
+                panic!("Test timed-out");
+            }
+        }
 
         match state {
             CpuState::Running => {
@@ -118,7 +136,7 @@ impl AvrTester {
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_s(&mut self, s: u32) {
-        let clock = self.clock as u64;
+        let clock = self.clock_frequency as u64;
         let s = s as u64;
 
         self.run_for(clock * s);
@@ -134,7 +152,7 @@ impl AvrTester {
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_ms(&mut self, ms: u32) {
-        let clock = self.clock as f32;
+        let clock = self.clock_frequency as f32;
         let ms = ms as f32;
 
         self.run_for((clock * ms / 1_000.0).ceil() as _);
@@ -150,7 +168,7 @@ impl AvrTester {
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_us(&mut self, us: u32) {
-        let clock = self.clock as f32;
+        let clock = self.clock_frequency as f32;
         let us = us as f32;
 
         self.run_for((clock * us / 1_000_000.0).ceil() as _);
