@@ -157,7 +157,7 @@ impl Uart {
 impl Drop for Uart {
     fn drop(&mut self) {
         unsafe {
-            Box::from_raw(self.ptr.as_ptr());
+            drop(Box::from_raw(self.ptr.as_ptr()));
         }
     }
 }
@@ -170,7 +170,7 @@ struct UartInner {
 }
 
 impl UartInner {
-    const MAX_BYTES: usize = 16 * 1024;
+    const RX_BUFFER_MAX_BYTES: usize = 128 * 1024;
 
     unsafe fn from_ptr<'a>(uart: *mut UartInner) -> &'a Self {
         &*(uart as *mut Self)
@@ -180,11 +180,11 @@ impl UartInner {
     ///
     /// # Safety
     ///
-    /// Cannot be called simultaneously with [`Self::rx_pop()`].
+    /// Cannot be called simultaneously with [`Self::pop_rx()`].
     unsafe fn push_rx(&self, value: u8) {
         let rx = &mut *self.rx.get();
 
-        if rx.len() < Self::MAX_BYTES {
+        if rx.len() < Self::RX_BUFFER_MAX_BYTES {
             rx.push_back(value);
         }
     }
@@ -196,7 +196,7 @@ impl UartInner {
     ///
     /// Cannot be called simultaneously with [`Self::push_rx()`].
     unsafe fn pop_rx(&self) -> Option<u8> {
-        (&mut *self.rx.get()).pop_front()
+        (*self.rx.get()).pop_front()
     }
 
     /// Called by AvrTester's user when they want to transmit a byte.
@@ -205,7 +205,7 @@ impl UartInner {
     ///
     /// Cannot be called simultaneously with [`Self::pop_tx()`].
     unsafe fn push_tx(&self, value: u8) {
-        (&mut *self.tx.get()).push_back(value);
+        (*self.tx.get()).push_back(value);
     }
 
     /// Called by simavr when the AVR is ready to retrieve a byte.
@@ -214,7 +214,7 @@ impl UartInner {
     ///
     /// Cannot be called simultaneously with [`Self::push_tx()`].
     unsafe fn pop_tx(&self) -> Option<u8> {
-        (&mut *self.tx.get()).pop_front()
+        (*self.tx.get()).pop_front()
     }
 
     /// Called by AvrTester to check whether the AVR is ready to retrieve a

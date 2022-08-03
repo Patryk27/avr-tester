@@ -41,8 +41,7 @@ fn test_simple() {
 fn test_precise() {
     let mut avr = avr_with("pins-digital", |avr| {
         avr.with_timeout_of_ms(
-            0
-            + 100 // Expected time for the pin to go high
+            100 // Expected time for the pin to go high
             + 100 // Expected time for the pin to go low
             + 10, // Some leeway, just in case
         )

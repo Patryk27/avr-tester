@@ -33,12 +33,12 @@ impl Adcs {
 
     pub fn set_voltage(&mut self, id: AdcId, voltage: AdcVoltage) {
         unsafe {
-            (&*self.ptr.as_ptr()).push_voltage(id, voltage);
+            (*self.ptr.as_ptr()).push_voltage(id, voltage);
         }
     }
 
     unsafe extern "C" fn on_adc_ready(irq: NonNull<ffi::avr_irq_t>, _: u32, adc: *mut AdcInner) {
-        let (adc_id, adc_voltage) = if let Some(voltage) = (&*adc).pop_voltage() {
+        let (adc_id, adc_voltage) = if let Some(voltage) = (*adc).pop_voltage() {
             voltage
         } else {
             return;
@@ -56,7 +56,7 @@ impl Adcs {
 impl Drop for Adcs {
     fn drop(&mut self) {
         unsafe {
-            Box::from_raw(self.ptr.as_ptr());
+            drop(Box::from_raw(self.ptr.as_ptr()));
         }
     }
 }
@@ -71,13 +71,13 @@ impl AdcInner {
     ///
     /// Cannot be called simultaneously with [`Self::pop_voltage()`].
     unsafe fn push_voltage(&self, id: AdcId, voltage: AdcVoltage) {
-        (&mut *self.voltages.get()).push_back((id, voltage));
+        (*self.voltages.get()).push_back((id, voltage));
     }
 
     /// # Safety
     ///
     /// Cannot be called simultaneously with [`Self::push_voltage()`].
     unsafe fn pop_voltage(&self) -> Option<(AdcId, AdcVoltage)> {
-        (&mut *self.voltages.get()).pop_front()
+        (*self.voltages.get()).pop_front()
     }
 }
