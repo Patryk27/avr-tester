@@ -1,18 +1,18 @@
 mod analog_pin;
 mod digital_pin;
 
-use crate::AvrSimulator;
+use crate::*;
 use simavr_ffi as ffi;
 
 pub use self::{analog_pin::*, digital_pin::*};
 
 pub struct Pins<'a> {
-    sim: &'a mut AvrSimulator,
+    avr: &'a mut AvrTester,
 }
 
 impl<'a> Pins<'a> {
-    pub(crate) fn new(sim: &'a mut AvrSimulator) -> Self {
-        Self { sim }
+    pub(crate) fn new(avr: &'a mut AvrTester) -> Self {
+        Self { avr }
     }
 }
 
@@ -21,7 +21,7 @@ macro_rules! analog_pins {
         impl<'a> Pins<'a> {
             $(
                 pub fn $fn(&mut self) -> AnalogPin<'_> {
-                    AnalogPin::new(self.sim, $irq)
+                    AnalogPin::new(self.avr, $irq)
                 }
             )*
         }
@@ -53,7 +53,7 @@ macro_rules! digital_pins {
         impl<'a> Pins<'a> {
             $(
                 pub fn $fn(&mut self) -> DigitalPin<'_> {
-                    DigitalPin::new(self.sim, $port, $pin)
+                    DigitalPin::new(self.avr, $port, $pin)
                 }
             )*
         }

@@ -1,7 +1,7 @@
 //! # Scenario
 //!
-//! In this test we're given an AVR that toggles `PD0` on and off every 100
-//! milliseconds.
+//! In this test we're given an AVR that toggles `PD0` on and off alternately
+//! every 100 and 150 milliseconds.
 //!
 //! # Firmware
 //!
@@ -10,35 +10,43 @@
 use crate::prelude::*;
 
 #[test]
-fn test_simple() {
+fn simple() {
     let mut avr = avr("pins-digital");
 
-    avr.pins().pd0().assert_low();
-
+    // Give the firmware a moment to initialize
     avr.run_for_ms(1);
-    avr.pins().pd0().assert_high();
 
+    // Assert the first `for`
+    avr.pins().pd0().assert_high();
     avr.run_for_ms(100);
     avr.pins().pd0().assert_low();
-
     avr.run_for_ms(100);
+
+    // Assert the second `for`
+    avr.pins().pd0().assert_high();
+    avr.run_for_ms(150);
+    avr.pins().pd0().assert_low();
+    avr.run_for_ms(150);
     avr.pins().pd0().assert_high();
 
+    // Assert the first `for` again
+    avr.pins().pd0().assert_high();
     avr.run_for_ms(100);
     avr.pins().pd0().assert_low();
+    avr.run_for_ms(100);
 }
 
-/// If our AVR blinked twice as fast (switching the pin every 50 ms), the
-/// previous test would've succeeded anyway - so it's a bit imprecise.
+/// If our AVR blinked twice as fast (switching the pin every 50 ms & 75 ms),
+/// the previous test would've succeeded anyway - so it's kinda imprecise.
 ///
-/// A bit better approach to measure the cycle time is not to passively wait,
-/// but to actively check how many milliseconds it took for the pin to toggle.
+/// A better approach would be not to passively wait & assert, but rather
+/// constantly listen on pin, waiting for it to change.
 ///
-/// Note that it's a good practice to pair that with
-/// [`AvrTesterBuilder::with_timeout()`], so that the test doesn't block forever
-/// if the firmware misbehaves (see: [`test_precise_on_wrong_pin()`]).
+/// Note that with this approach if the firmware misbehaves, our `while` could
+/// loop forever - so it's a good practice to pair these kind of tests with
+/// [`AvrTesterBuilder::with_timeout()`].
 #[test]
-fn test_precise() {
+fn precise() {
     let mut avr = avr_with("pins-digital", |avr| {
         avr.with_timeout_of_ms(
             100 // Expected time for the pin to go high
@@ -47,36 +55,61 @@ fn test_precise() {
         )
     });
 
-    let mut delay_time = 0;
-
-    // Wait for the pin to get high
-    while avr.pins().pd0().is_low() {
-        avr.run();
-    }
+    // Give the firmware a moment to initialize
+    avr.run_for_ms(1);
 
     // Wait for the pin to get low
+    let mut time_taken_ms = 0;
+
     while avr.pins().pd0().is_high() {
-        delay_time += 1;
+        time_taken_ms += 1;
         avr.run_for_ms(1);
     }
+
+    assert_eq!(100, time_taken_ms);
 
     // Wait for the pin to get high
+    let mut time_taken_ms = 0;
+
     while avr.pins().pd0().is_low() {
-        delay_time += 1;
+        time_taken_ms += 1;
         avr.run_for_ms(1);
     }
 
-    // Ensure we've got a 200 ms cycle
-    assert_eq!(200, delay_time);
+    assert_eq!(100, time_taken_ms);
 }
 
-/// Similar to [`test_precise()`], but in this case we "accidentally" assert the
+/// Similar to [`precise()`], but using built-in functions instead of
+/// hand-written loops.
+#[test]
+fn precise_idiomatic() {
+    let mut avr = avr_with("pins-digital", |avr| avr.with_timeout_of_s(1));
+
+    // Give the firmware a moment to initialize
+    avr.run_for_us(100);
+
+    // Assert the first `for`
+    assert_eq!(100, avr.pins().pd0().wait_while_high().as_millis());
+    assert_eq!(100, avr.pins().pd0().wait_while_low().as_millis());
+
+    // Assert the second `for`
+    assert_eq!(150, avr.pins().pd0().wait_while_high().as_millis());
+    assert_eq!(150, avr.pins().pd0().wait_while_low().as_millis());
+
+    // Alternatively, using `pulse_in()`:
+    assert_eq!(100, avr.pins().pd0().pulse_in().as_millis());
+    assert_eq!(100, avr.pins().pd0().pulse_in().as_millis());
+    assert_eq!(150, avr.pins().pd0().pulse_in().as_millis());
+    assert_eq!(150, avr.pins().pd0().pulse_in().as_millis());
+}
+
+/// Similar to [`precise()`], but in this case we "accidentally" assert the
 /// wrong pin, causing the configured timeout to kick-in.
 ///
 /// (and so without specifying the timeout, the test would run forever.)
 #[test]
 #[should_panic(expected = "Test timed-out")]
-fn test_pricise_on_wrong_pin() {
+fn precise_stuck() {
     let mut avr = avr_with("pins-digital", |avr| avr.with_timeout_of_ms(100));
 
     while avr.pins().pd1().is_low() {

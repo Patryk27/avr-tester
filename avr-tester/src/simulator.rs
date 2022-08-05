@@ -1,6 +1,6 @@
 mod adcs;
 mod avr;
-mod cpu_cycles_taken;
+mod cpu_duration;
 mod cpu_state;
 mod elf_firmware;
 mod ioctl;
@@ -12,7 +12,7 @@ use self::{adcs::*, avr::*, elf_firmware::*, ioctl::*, ports::*, uart::*};
 use simavr_ffi as ffi;
 use std::path::Path;
 
-pub use self::{cpu_cycles_taken::*, cpu_state::*};
+pub use self::{cpu_duration::*, cpu_state::*};
 
 /// Middle-ground between simavr and AvrTester; provides access to the UARTs,
 /// pins etc. without wrapping them in a beautiful plastic foil.
@@ -24,10 +24,10 @@ pub struct AvrSimulator {
 }
 
 impl AvrSimulator {
-    pub fn new(mcu: &str, clock: u32) -> Self {
+    pub fn new(mcu: &str, frequency: u32) -> Self {
         logs::init();
 
-        let mut avr = Avr::new(mcu).init(clock);
+        let mut avr = Avr::new(mcu).init(frequency);
         let adcs = Adcs::new().try_init(&mut avr);
         let ports = Ports::new();
         let uart0 = Uart::new('0').try_init(&mut avr);
@@ -45,7 +45,7 @@ impl AvrSimulator {
         ElfFirmware::new().load(path).flash_on(&mut self.avr);
     }
 
-    pub fn run(&mut self) -> (CpuState, CpuCyclesTaken) {
+    pub fn run(&mut self) -> (CpuState, CpuDuration) {
         for uart in self.uarts.iter_mut().flatten() {
             uart.flush(&mut self.avr);
         }

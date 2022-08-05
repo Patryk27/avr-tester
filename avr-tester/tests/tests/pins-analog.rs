@@ -13,6 +13,7 @@ use crate::prelude::*;
 fn test() {
     let mut avr = avr("pins-analog");
 
+    // Give the firmware a moment to initialize
     avr.run_for_ms(1);
 
     let assertions = [
@@ -20,8 +21,9 @@ fn test() {
         (0, false),
         (50, false),
         (100, false),
-        (140, true),
+        (120, false),
         (150, true),
+        (256, true),
         (1024, true),
     ];
 

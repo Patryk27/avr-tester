@@ -2,6 +2,7 @@
 members = [
     "pins-analog",
     "pins-digital",
+    "timeout",
     "uart",
     "xx-bits",
     "xx-eval",

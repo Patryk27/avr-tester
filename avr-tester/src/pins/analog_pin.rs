@@ -1,17 +1,17 @@
-use crate::AvrSimulator;
+use crate::*;
 
 pub struct AnalogPin<'a> {
-    sim: &'a mut AvrSimulator,
+    avr: &'a mut AvrTester,
     pin: u32,
 }
 
 impl<'a> AnalogPin<'a> {
-    pub(super) fn new(sim: &'a mut AvrSimulator, pin: u32) -> Self {
-        Self { sim, pin }
+    pub(super) fn new(avr: &'a mut AvrTester, pin: u32) -> Self {
+        Self { avr, pin }
     }
 
-    /// Simulates applying `voltage` millivolts to this ADC.
+    /// Applies `voltage` millivolts to this ADC.
     pub fn set_mv(&mut self, voltage: u32) {
-        self.sim.set_adc_voltage(self.pin as _, voltage);
+        self.avr.sim.set_adc_voltage(self.pin as _, voltage);
     }
 }

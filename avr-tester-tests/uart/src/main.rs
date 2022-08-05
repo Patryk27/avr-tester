@@ -1,4 +1,4 @@
-//! See: [../../../avr-tester/tests/tests/uart.rs]
+//! See: [../../../avr-tester/tests/tests/uart.rs].
 
 #![no_std]
 #![no_main]

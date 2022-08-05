@@ -6,6 +6,9 @@ mod pins_analog;
 #[path = "tests/pins-digital.rs"]
 mod pins_digital;
 
+#[path = "tests/timeout.rs"]
+mod timeout;
+
 #[path = "tests/uart.rs"]
 mod uart;
 

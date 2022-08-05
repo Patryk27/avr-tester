@@ -29,7 +29,7 @@
 //! [AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
 //! [simavr]: https://github.com/buserror/simavr
 //!
-//! For more details, please see: [./README.md].
+//! For more details, please see README.
 
 mod builder;
 mod pins;
@@ -39,7 +39,7 @@ mod uart;
 use self::simulator::*;
 use std::path::Path;
 
-pub use self::{builder::*, pins::*, simulator::CpuCyclesTaken, uart::*};
+pub use self::{builder::*, pins::*, simulator::CpuDuration, uart::*};
 
 /// Simulator's entry point; you can build it using [`AvrTester::atmega328p()`]
 /// or a similar function.
@@ -70,19 +70,21 @@ impl AvrTester {
     /// Runs a full single instruction, returning the number of cycles it took
     /// to execute that instruction (e.g. `MUL` takes two cycles or so).
     ///
-    /// Note that the number returned here is somewhat approximate (see:
-    /// [`CpuCyclesTaken`]).
+    /// Note that the number returned here is somewhat approximate (see
+    /// [`CpuDuration`]), but it's guaranteed to be at least one cycle.
     ///
     /// See also:
     ///
     /// - [`Self::run_for_s()`],
     /// - [`Self::run_for_ms()`],
     /// - [`Self::run_for_us()`].
-    pub fn run(&mut self) -> CpuCyclesTaken {
-        let (state, cycles_taken) = self.sim.run();
+    pub fn run(&mut self) -> CpuDuration {
+        let (state, tt) = self.sim.run();
+
+        assert!(tt.as_cycles() > 0);
 
         if let Some(remaining_clock_cycles) = &mut self.remaining_clock_cycles {
-            *remaining_clock_cycles = remaining_clock_cycles.saturating_sub(cycles_taken.get());
+            *remaining_clock_cycles = remaining_clock_cycles.saturating_sub(tt.as_cycles());
 
             if *remaining_clock_cycles == 0 {
                 panic!("Test timed-out");
@@ -95,7 +97,10 @@ impl AvrTester {
             }
 
             CpuState::Crashed => {
-                panic!("AVR crashed (e.g. the program stepped on an invalid instruction)");
+                panic!(
+                    "AVR crashed (e.g. the program stepped on an invalid \
+                     instruction)"
+                );
             }
 
             CpuState::Sleeping => {
@@ -106,60 +111,31 @@ impl AvrTester {
             }
 
             state => {
-                panic!("Unexpected CpuState: {:?}", state)
+                panic!("Unexpected CpuState: {:?}", state);
             }
         }
 
-        cycles_taken
+        tt
     }
 
-    /// Runs code for given number of cycles.
+    /// Runs firmware for given number of cycles (when given [`u64`]) or given
+    /// [`CpuDuration`].
     ///
     /// See also:
     ///
     /// - [`Self::run_for_s()`],
     /// - [`Self::run_for_ms()`],
     /// - [`Self::run_for_us()`].
-    pub fn run_for(&mut self, mut cycles: u64) {
+    pub fn run_for(&mut self, cycles: impl IntoCycles) {
+        let mut cycles = cycles.into_cycles();
+
         while cycles > 0 {
-            cycles = cycles.saturating_sub(self.run().get().max(1));
+            cycles = cycles.saturating_sub(self.run().as_cycles());
         }
     }
 
-    /// Runs code for given number of _AVR_ seconds, considering the clock
-    /// specified through [`AvrTesterBuilder::with_clock()`].
-    ///
-    /// See:
-    ///
-    /// - [`Self::run_for_ms()`],
-    /// - [`Self::run_for_us()`].
-    ///
-    /// See also: [`Self::run()`].
-    pub fn run_for_s(&mut self, s: u32) {
-        let clock = self.clock_frequency as u64;
-        let s = s as u64;
-
-        self.run_for(clock * s);
-    }
-
-    /// Runs code for given number of _AVR_ milliseconds, considering the clock
-    /// specified through [`AvrTesterBuilder::with_clock()`].
-    ///
-    /// See:
-    ///
-    /// - [`Self::run_for_s()`],
-    /// - [`Self::run_for_us()`].
-    ///
-    /// See also: [`Self::run()`].
-    pub fn run_for_ms(&mut self, ms: u32) {
-        let clock = self.clock_frequency as f32;
-        let ms = ms as f32;
-
-        self.run_for((clock * ms / 1_000.0).ceil() as _);
-    }
-
-    /// Runs code for given number of _AVR_ microseconds, considering the clock
-    /// specified through [`AvrTesterBuilder::with_clock()`].
+    /// Runs firmware for given number of _AVR_ microseconds, considering the
+    /// clock specified through [`AvrTesterBuilder::with_clock()`].
     ///
     /// See:
     ///
@@ -167,11 +143,34 @@ impl AvrTester {
     /// - [`Self::run_for_ms()`].
     ///
     /// See also: [`Self::run()`].
-    pub fn run_for_us(&mut self, us: u32) {
-        let clock = self.clock_frequency as f32;
-        let us = us as f32;
+    pub fn run_for_us(&mut self, n: u64) {
+        self.run_for(CpuDuration::micros(self, n));
+    }
 
-        self.run_for((clock * us / 1_000_000.0).ceil() as _);
+    /// Runs firmware for given number of _AVR_ milliseconds, considering the
+    /// clock specified through [`AvrTesterBuilder::with_clock()`].
+    ///
+    /// See:
+    ///
+    /// - [`Self::run_for_s()`],
+    /// - [`Self::run_for_us()`].
+    ///
+    /// See also: [`Self::run()`].
+    pub fn run_for_ms(&mut self, n: u64) {
+        self.run_for(CpuDuration::millis(self, n));
+    }
+
+    /// Runs firmware for given number of _AVR_ seconds, considering the clock
+    /// specified through [`AvrTesterBuilder::with_clock()`].
+    ///
+    /// See:
+    ///
+    /// - [`Self::run_for_ms()`],
+    /// - [`Self::run_for_us()`].
+    ///
+    /// See also: [`Self::run()`].
+    pub fn run_for_s(&mut self, n: u64) {
+        self.run_for(CpuDuration::secs(self, n));
     }
 
     /// Returns an object providing access to the input and output pins (such as
@@ -182,7 +181,7 @@ impl AvrTester {
     /// those pins - trying to access a pin that does not exist for your AVR
     /// will gracefully `panic!()`.
     pub fn pins(&mut self) -> Pins<'_> {
-        Pins::new(&mut self.sim)
+        Pins::new(self)
     }
 
     /// Returns an object providing access to UART0 (i.e. the default UART).
@@ -199,6 +198,22 @@ impl AvrTester {
     /// gracefully `panic!()`.
     pub fn uart1(&mut self) -> Uart<'_> {
         Uart::new(&mut self.sim, 1)
+    }
+}
+
+pub trait IntoCycles {
+    fn into_cycles(self) -> u64;
+}
+
+impl IntoCycles for u64 {
+    fn into_cycles(self) -> u64 {
+        self
+    }
+}
+
+impl IntoCycles for CpuDuration {
+    fn into_cycles(self) -> u64 {
+        self.as_cycles()
     }
 }
 

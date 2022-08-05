@@ -186,6 +186,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests-timeout"
+version = "0.1.0"
+dependencies = [
+ "atmega-hal",
+ "avr-hal-generic",
+ "panic-halt",
+]
+
+[[package]]
 name = "tests-uart"
 version = "0.1.0"
 dependencies = [

@@ -20,7 +20,7 @@ impl Avr {
         Self { ptr }
     }
 
-    pub fn init(mut self, clock: u32) -> Self {
+    pub fn init(mut self, frequency: u32) -> Self {
         let status = unsafe { ffi::avr_init(self.ptr.as_ptr()) };
 
         if status != 0 {
@@ -28,7 +28,7 @@ impl Avr {
         }
 
         unsafe {
-            self.ptr.as_mut().frequency = clock;
+            self.ptr.as_mut().frequency = frequency;
         }
 
         self
@@ -38,15 +38,20 @@ impl Avr {
         unsafe { self.ptr.as_ref().cycle }
     }
 
-    pub fn run(&mut self) -> (CpuState, CpuCyclesTaken) {
+    pub fn frequency(&self) -> u32 {
+        unsafe { self.ptr.as_ref().frequency }
+    }
+
+    pub fn run(&mut self) -> (CpuState, CpuDuration) {
         let cycle = self.cycle();
         let state = unsafe { ffi::avr_run(self.ptr.as_ptr()) };
-        let cycles_taken = self.cycle() - cycle;
+        let tt = self.cycle() - cycle;
+        let tt = tt.max(1);
 
         let state = CpuState::from_ffi(state);
-        let cycles_taken = CpuCyclesTaken::new(cycles_taken);
+        let tt = CpuDuration::new(self.frequency(), tt);
 
-        (state, cycles_taken)
+        (state, tt)
     }
 
     /// Shorthand for: [`ffi::avr_load_firmware()`].

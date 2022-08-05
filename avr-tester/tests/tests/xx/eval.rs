@@ -85,7 +85,7 @@ fn primitives() {
 #[test]
 fn expressions() {
     const TRIES: usize = 10;
-    const MAX_DEPTH: u32 = 16;
+    const MAX_DEPTH: u64 = 16;
 
     let mut avr = avr("xx-eval");
 
@@ -178,7 +178,7 @@ impl Type {
         .into_iter()
     }
 
-    fn weight(self) -> u32 {
+    fn weight(self) -> u64 {
         match self {
             Self::I8 | Self::U8 | Self::I16 | Self::U16 => 1,
             Self::I32 | Self::U32 => 2,

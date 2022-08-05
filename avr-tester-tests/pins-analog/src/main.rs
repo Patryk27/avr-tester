@@ -1,4 +1,4 @@
-//! See: [../../../avr-tester/tests/tests/pins-analog.rs]
+//! See: [../../../avr-tester/tests/tests/pins-analog.rs].
 
 #![no_std]
 #![no_main]
