@@ -1,5 +1,8 @@
 #![feature(exit_status_error)]
 
+#[path = "tests/components-shift-register.rs"]
+mod components_shift_register;
+
 #[path = "tests/pins-analog.rs"]
 mod pins_analog;
 

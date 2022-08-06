@@ -2,7 +2,7 @@
 //!
 //! # Scenario
 //!
-//! In this test we're given an AVR that implements an expression evaluator.
+//! We're given an AVR that implements an expression evaluator.
 //!
 //! The AVR retrieves a LISP-like expression via the UART (think `* 1 + 2 3`,
 //! but represented in a binary protocol) and sends back a single number

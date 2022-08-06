@@ -1,6 +1,6 @@
 //! # Scenario
 //!
-//! In this test we're given an AVR that implements a ROT13 encoder on UART0.
+//! We're given an AVR that implements a ROT13 encoder on UART0.
 //!
 //! # Firmware
 //!

@@ -44,9 +44,9 @@ impl CpuDuration {
     ///
     /// ```no_run
     /// # use avr_tester::CpuDuration;
-    /// # let avr = todo!();
+    /// # let avr = panic!();
     /// #
-    /// let duration = CpuDuration::zero(&avr).add_millis(150);
+    /// let duration = CpuDuration::zero(&avr).with_millis(150);
     /// ```
     pub fn zero(avr: &AvrTester) -> Self {
         Self::new(avr.clock_frequency, 0)
@@ -59,7 +59,7 @@ impl CpuDuration {
     ///
     /// ```no_run
     /// # use avr_tester::CpuDuration;
-    /// # let avr = todo!();
+    /// # let avr = panic!();
     /// #
     /// let duration = CpuDuration::micros(&avr, 15);
     /// ```
@@ -74,7 +74,7 @@ impl CpuDuration {
     ///
     /// ```no_run
     /// # use avr_tester::CpuDuration;
-    /// # let avr = todo!();
+    /// # let avr = panic!();
     /// #
     /// let duration = CpuDuration::millis(&avr, 15);
     /// ```
@@ -89,7 +89,7 @@ impl CpuDuration {
     ///
     /// ```no_run
     /// # use avr_tester::CpuDuration;
-    /// # let avr = todo!();
+    /// # let avr = panic!();
     /// #
     /// let duration = CpuDuration::secs(&avr, 15);
     /// ```
@@ -114,7 +114,7 @@ impl CpuDuration {
         self
     }
 
-    /// Returns a new duration with increased number of cycles.
+    /// Returns a new duration with increased number of microseconds.
     ///
     /// # Examples
     ///
@@ -130,7 +130,7 @@ impl CpuDuration {
         self.add_cycles(n * (self.clock_frequency as u64 / 1_000_000))
     }
 
-    /// Returns a new duration with increased number of cycles.
+    /// Returns a new duration with increased number of milliseconds.
     ///
     /// # Examples
     ///
@@ -146,7 +146,7 @@ impl CpuDuration {
         self.add_cycles(millis * (self.clock_frequency as u64) / 1_000)
     }
 
-    /// Returns a new duration with increased number of cycles.
+    /// Returns a new duration with increased number of seconds.
     ///
     /// # Examples
     ///
@@ -160,6 +160,67 @@ impl CpuDuration {
     /// ```
     pub const fn add_secs(self, secs: u64) -> Self {
         self.add_cycles(secs * (self.clock_frequency as u64))
+    }
+
+    /// Returns a new duration with specified number of cycles.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use avr_tester::CpuDuration;
+    /// #
+    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    ///
+    /// assert_eq!(250, tt.with_cycles(4_000_000).as_millis());
+    /// ```
+    pub const fn with_cycles(mut self, n: u64) -> Self {
+        self.cycles = n;
+        self
+    }
+
+    /// Returns a new duration with specified number of microseconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use avr_tester::CpuDuration;
+    /// #
+    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    ///
+    /// assert_eq!(1, tt.with_micros(1_000).as_millis());
+    /// ```
+    pub const fn with_micros(self, n: u64) -> Self {
+        self.with_cycles(0).add_micros(n)
+    }
+
+    /// Returns a new duration with specified number of milliseconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use avr_tester::CpuDuration;
+    /// #
+    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    ///
+    /// assert_eq!(15, tt.with_millis(15).as_millis());
+    /// ```
+    pub const fn with_millis(self, n: u64) -> Self {
+        self.with_cycles(0).add_millis(n)
+    }
+
+    /// Returns a new duration with specified number of seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use avr_tester::CpuDuration;
+    /// #
+    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    ///
+    /// assert_eq!(2000, tt.with_secs(2).as_millis());
+    /// ```
+    pub const fn with_secs(self, n: u64) -> Self {
+        self.with_cycles(0).add_secs(n)
     }
 
     /// Returns the clock frequency associated with this duration (e.g. 16 MHz).
@@ -289,8 +350,27 @@ impl CpuDuration {
     pub fn as_secs_f64(self) -> f64 {
         (self.cycles as f64) / (self.clock_frequency as f64)
     }
+
+    /// Returns whether the number of cycles contained by this duration is zero.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use avr_tester::CpuDuration;
+    /// #
+    /// let tt1 = CpuDuration::new(16_000_000, 0);
+    /// let tt2 = CpuDuration::new(16_000_000, 10_000);
+    ///
+    /// assert!(tt1.is_zero());
+    /// assert!(!tt2.is_zero());
+    /// ```
+    pub fn is_zero(self) -> bool {
+        self.as_cycles() == 0
+    }
 }
 
+/// # Examples
+///
 /// ```
 /// # use avr_tester::CpuDuration;
 /// #
@@ -311,6 +391,8 @@ impl Add for CpuDuration {
     }
 }
 
+/// # Examples
+///
 /// ```
 /// # use avr_tester::CpuDuration;
 /// #
@@ -332,6 +414,8 @@ impl AddAssign for CpuDuration {
     }
 }
 
+/// # Examples
+///
 /// ```
 /// # use avr_tester::CpuDuration;
 /// #
@@ -340,6 +424,18 @@ impl AddAssign for CpuDuration {
 ///
 /// assert_eq!(
 ///     CpuDuration::new(16_000_000, 1_000),
+///     a - b,
+/// );
+/// ```
+///
+/// ```
+/// # use avr_tester::CpuDuration;
+/// #
+/// let a = CpuDuration::new(16_000_000, 3_000);
+/// let b = CpuDuration::new(16_000_000, 4_000);
+///
+/// assert_eq!(
+///     CpuDuration::new(16_000_000, 0),
 ///     a - b,
 /// );
 /// ```
@@ -352,6 +448,8 @@ impl Sub for CpuDuration {
     }
 }
 
+/// # Examples
+///
 /// ```
 /// # use avr_tester::CpuDuration;
 /// #
@@ -361,6 +459,16 @@ impl Sub for CpuDuration {
 ///
 /// assert_eq!(CpuDuration::new(16_000_000, 1_000), a);
 /// ```
+///
+/// ```
+/// # use avr_tester::CpuDuration;
+/// #
+/// let mut a = CpuDuration::new(16_000_000, 3_000);
+///
+/// a -= CpuDuration::new(16_000_000, 4_000);
+///
+/// assert_eq!(CpuDuration::new(16_000_000, 0), a);
+/// ```
 impl SubAssign for CpuDuration {
     fn sub_assign(&mut self, rhs: Self) {
         assert_eq!(
@@ -369,6 +477,6 @@ impl SubAssign for CpuDuration {
             self.clock_frequency, rhs.clock_frequency
         );
 
-        self.cycles -= rhs.cycles;
+        self.cycles = self.cycles.saturating_sub(rhs.cycles);
     }
 }

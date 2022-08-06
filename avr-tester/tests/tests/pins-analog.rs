@@ -1,7 +1,7 @@
 //! # Scenario
 //!
-//! In this test we're given an AVR that constantly polls `ADC2`, turning `PD0`
-//! on if the read analog value is greater than 123.
+//! We're given an AVR that constantly polls `ADC2`, turning `PD0` on if the
+//! read analog value is greater than 123.
 //!
 //! # Firmware
 //!

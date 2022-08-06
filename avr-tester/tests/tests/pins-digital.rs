@@ -1,7 +1,7 @@
 //! # Scenario
 //!
-//! In this test we're given an AVR that toggles `PD0` on and off alternately
-//! every 100 and 150 milliseconds.
+//! We're given an AVR that toggles `PD0` on and off alternately every 100 and
+//! 150 milliseconds.
 //!
 //! # Firmware
 //!

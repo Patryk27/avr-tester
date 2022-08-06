@@ -1,6 +1,7 @@
 use crate::*;
 use std::array;
 
+/// Manages a single UART.
 pub struct Uart<'a> {
     sim: &'a mut AvrSimulator,
     id: usize,
@@ -39,6 +40,31 @@ impl<'a> Uart<'a> {
     /// See: [`UartRecv`].
     ///
     /// See also: [`Self::recv_byte()`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use avr_tester::*;
+    /// # fn avr() -> AvrTester { panic!() }
+    /// #
+    /// let mut avr = avr();
+    ///
+    /// // Retrieves a single byte:
+    /// // (when the input buffer is empty, panics.)
+    /// assert_eq!(72, avr.uart0().recv::<u8>());
+    ///
+    /// // Retrieves the entire buffer:
+    /// // (when it's empty, returns an empty vector.)
+    /// assert_eq!(vec![72, 101, 108, 108, 111], avr.uart0().recv::<Vec<u8>>());
+    ///
+    /// // Retrieves `n` bytes from the buffer:
+    /// // (when there's not enough bytes, panics.)
+    /// assert_eq!([72, 101, 108, 108, 111], avr.uart0().recv::<[u8; 5]>());
+    ///
+    /// // Retrieves the entire input buffer and converts it into string:
+    /// // (when it's empty, returns an empty string.)
+    /// assert_eq!("Hello", avr.uart0().recv::<String>());
+    /// ```
     pub fn recv<T>(&mut self) -> T
     where
         T: UartRecv,
@@ -57,7 +83,7 @@ impl<'a> Uart<'a> {
     }
 }
 
-/// A type that can be transmitted through [`Uart::send()`].
+/// Type that can be transmitted through [`Uart::send()`].
 ///
 /// You can implement it for your types to make tests more readable.
 pub trait UartSend {
@@ -99,7 +125,7 @@ impl<const N: usize> UartSend for [u8; N] {
     }
 }
 
-/// A type that can be retrieved through [`Uart::recv()`].
+/// Type that can be retrieved through [`Uart::recv()`].
 ///
 /// You can implement it for your types to make tests more readable.
 pub trait UartRecv {

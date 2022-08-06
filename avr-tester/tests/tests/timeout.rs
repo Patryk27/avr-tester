@@ -1,9 +1,10 @@
 //! # Scenario
 //!
-//! In this test we're given an AVR that does nothing, while we think it should
-//! toggle a pin on-and-off. By carefully constructing the test, using timeout,
-//! we prevent it from running forever, waiting for a toggle that will never
-//! happen.
+//! We're given an AVR that does nothing, while we think it should toggle a pin
+//! on-and-off.
+//!
+//! By carefully constructing the test, using timeout, we prevent it from
+//! running forever, waiting for a toggle that will never happen.
 //!
 //! # Firmware
 //!

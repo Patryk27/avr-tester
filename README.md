@@ -16,13 +16,13 @@ Status: alpha; work in progress.
 
 ## Getting Started
 
-First, create a separate crate, dedicated only to your project's tests:
+Create a crate dedicated to your project's tests:
 
 ```shell
 $ cargo new yourproject-tests --lib
 ```
 
-... then add `avr-tester` as its dependency:
+... add `avr-tester` as its dependency:
 
 ```toml
 # yourproject-tests/Cargo.toml
@@ -31,7 +31,7 @@ $ cargo new yourproject-tests --lib
 avr-tester = "0.1"
 ```
 
-... and, just like that, you can start writing tests:
+... and, just like that, start writing tests:
 
 ```rust
 // yourproject-tests/src/lib.rs
@@ -44,14 +44,13 @@ fn avr() -> AvrTester {
         .load("../../yourproject/target/atmega328p/release/yourproject.elf")
 }
 
-// Assuming `yourproject` is a ROT-13 encoder, one could imagine tests such as
-// those:
+// Assuming `yourproject` implements an ROT-13 encoder:
 
 #[test]
 fn short_text() {
     let mut avr = avr();
 
-    // Let's give our AVR a moment to initialize itself and UART:
+    // Let's give our firmware a moment to initialize:
     avr.run_for_ms(1);
 
     // Now, let's send the string:
@@ -60,7 +59,7 @@ fn short_text() {
     // ... give the AVR a moment to retrieve it & send back, encoded:
     avr.run_for_ms(1);
 
-    // ... and, finally, assert the outcome:
+    // ... and, finally, let's assert the outcome:
     assert_eq!("Uryyb, Jbeyq!", avr.uart0().recv::<String>());
 }
 
@@ -91,9 +90,10 @@ Rust-based tests for a firmware written in C, Zig or anything else!
 
 ## Usage
 
-- [Testing analog pins](avr-tester/tests/tests/pins-analog.rs),
-- [Testing digital pins](avr-tester/tests/tests/pins-digital.rs),
-- [Testing UARTs](avr-tester/tests/tests/uart.rs).
+- [Analog pins](avr-tester/tests/tests/pins-analog.rs),
+- [Digital pins](avr-tester/tests/tests/pins-digital.rs),
+- [UARTs](avr-tester/tests/tests/uart.rs),
+- [Shift registers](avr-tester/tests/tests/components-shift-register.rs).
 
 ## Requirements & supported platforms
 

@@ -168,6 +168,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests-components-shift-register"
+version = "0.1.0"
+dependencies = [
+ "atmega-hal",
+ "avr-hal-generic",
+ "panic-halt",
+]
+
+[[package]]
 name = "tests-pins-analog"
 version = "0.1.0"
 dependencies = [

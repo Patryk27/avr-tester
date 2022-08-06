@@ -3,8 +3,7 @@
 //! ```no_run
 //! use avr_tester::AvrTester;
 //!
-//! // Assuming `yourproject` is a ROT-13 encoder, one could write a test such
-//! // as this:
+//! // Assuming `yourproject` implements an ROT-13 encoder:
 //!
 //! #[test]
 //! fn test() {
@@ -12,7 +11,7 @@
 //!         .with_clock_of_16_mhz()
 //!         .load("../../yourproject/target/atmega328p/release/yourproject.elf");
 //!
-//!     // Let's give our AVR a moment to initialize itself and UART:
+//!     // Let's give our firmware a moment to initialize:
 //!     avr.run_for_ms(1);
 //!
 //!     // Now, let's send the string:
@@ -21,32 +20,37 @@
 //!     // ... give the AVR a moment to retrieve it & send back, encoded:
 //!     avr.run_for_ms(1);
 //!
-//!     // ... and, finally, assert the outcome:
+//!     // ... and, finally, let's assert the outcome:
 //!     assert_eq!("Uryyb, Jbeyq!", avr.uart0().recv::<String>());
 //! }
 //! ```
 //!
+//! For more details, please see README.
+//!
 //! [AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
 //! [simavr]: https://github.com/buserror/simavr
-//!
-//! For more details, please see README.
+
+#![feature(drain_filter)]
 
 mod builder;
+mod components;
 mod pins;
 mod simulator;
 mod uart;
+mod utils;
 
 use self::simulator::*;
-use std::path::Path;
+use std::{marker::PhantomData, path::Path};
 
-pub use self::{builder::*, pins::*, simulator::CpuDuration, uart::*};
+pub use self::{builder::*, components::*, pins::*, simulator::CpuDuration, uart::*, utils::*};
 
 /// Simulator's entry point; you can build it using [`AvrTester::atmega328p()`]
 /// or a similar function.
 pub struct AvrTester {
-    sim: AvrSimulator,
+    sim: Option<AvrSimulator>,
     clock_frequency: u32,
     remaining_clock_cycles: Option<u64>,
+    components: Components,
 }
 
 impl AvrTester {
@@ -61,9 +65,10 @@ impl AvrTester {
         sim.flash(firmware);
 
         Self {
-            sim,
+            sim: Some(sim),
             clock_frequency,
             remaining_clock_cycles,
+            components: Components::new(),
         }
     }
 
@@ -79,9 +84,11 @@ impl AvrTester {
     /// - [`Self::run_for_ms()`],
     /// - [`Self::run_for_us()`].
     pub fn run(&mut self) -> CpuDuration {
-        let (state, tt) = self.sim.run();
+        let (state, tt) = self.sim().run();
 
         assert!(tt.as_cycles() > 0);
+
+        self.components.run(&mut self.sim, self.clock_frequency, tt);
 
         if let Some(remaining_clock_cycles) = &mut self.remaining_clock_cycles {
             *remaining_clock_cycles = remaining_clock_cycles.saturating_sub(tt.as_cycles());
@@ -126,8 +133,8 @@ impl AvrTester {
     /// - [`Self::run_for_s()`],
     /// - [`Self::run_for_ms()`],
     /// - [`Self::run_for_us()`].
-    pub fn run_for(&mut self, cycles: impl IntoCycles) {
-        let mut cycles = cycles.into_cycles();
+    pub fn run_for(&mut self, n: impl IntoCycles) {
+        let mut cycles = n.into_cycles();
 
         while cycles > 0 {
             cycles = cycles.saturating_sub(self.run().as_cycles());
@@ -173,8 +180,8 @@ impl AvrTester {
         self.run_for(CpuDuration::secs(self, n));
     }
 
-    /// Returns an object providing access to the input and output pins (such as
-    /// `ADC1`, `PD4` etc.).
+    /// Returns an object providing read & write access to the analog & digital
+    /// pins (such as `ADC1`, `PD4` etc.).
     ///
     /// Note that the returned object contains all possible pins for all of the
     /// existing AVRs, while the AVR of yours probably supports only a subset of
@@ -189,7 +196,7 @@ impl AvrTester {
     /// Note that if your AVR doesn't support UART0, operating on it will
     /// gracefully `panic!()`.
     pub fn uart0(&mut self) -> Uart<'_> {
-        Uart::new(&mut self.sim, 0)
+        Uart::new(self.sim(), 0)
     }
 
     /// Returns an object providing access to UART1.
@@ -197,24 +204,94 @@ impl AvrTester {
     /// Note that if your AVR doesn't support UART1, operating on it will
     /// gracefully `panic!()`.
     pub fn uart1(&mut self) -> Uart<'_> {
-        Uart::new(&mut self.sim, 1)
+        Uart::new(self.sim(), 1)
+    }
+
+    /// Returns an object providing acccess to components (aka _peripherals_)
+    /// attached to the AVR.
+    pub fn components(&mut self) -> &mut Components {
+        &mut self.components
+    }
+
+    fn sim(&mut self) -> &mut AvrSimulator {
+        self.sim
+            .as_mut()
+            .expect("AvrSimulator had been deallocated - has some component crashed?")
     }
 }
 
-pub trait IntoCycles {
-    fn into_cycles(self) -> u64;
+/// Asynchronous equivalent of [`AvrTester`].
+///
+/// See [`avr_rt()`] for more details.
+pub struct AvrTesterAsync {
+    _pd: PhantomData<()>,
 }
 
-impl IntoCycles for u64 {
-    fn into_cycles(self) -> u64 {
-        self
+impl AvrTesterAsync {
+    fn new() -> Self {
+        Self {
+            _pd: Default::default(),
+        }
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::run()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub async fn run(&self) -> CpuDuration {
+        ResumeFuture::new().await
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::run_for()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub async fn run_for(&self, n: impl IntoCycles) {
+        let cycles = n.into_cycles();
+
+        ComponentRuntime::with(|rt| {
+            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), cycles))
+        });
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::run_for_us()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub async fn run_for_us(&self, n: u64) {
+        ComponentRuntime::with(|rt| {
+            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_micros(n))
+        });
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::run_for_ms()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub async fn run_for_ms(&self, n: u64) {
+        ComponentRuntime::with(|rt| {
+            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_millis(n))
+        });
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::run_for_s()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub async fn run_for_s(&self, n: u64) {
+        ComponentRuntime::with(|rt| {
+            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_secs(n))
+        });
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::pins()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub fn pins(&self) -> PinsAsync {
+        PinsAsync::new()
     }
 }
 
-impl IntoCycles for CpuDuration {
-    fn into_cycles(self) -> u64 {
-        self.as_cycles()
-    }
+/// Returns [`AvrTesterAsync`] for usage inside **components**.
+///
+/// See [`Components`] for more details.
+pub fn avr_rt() -> AvrTesterAsync {
+    AvrTesterAsync::new()
 }
 
 macro_rules! constructors {

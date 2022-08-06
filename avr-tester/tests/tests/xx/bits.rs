@@ -2,9 +2,9 @@
 //!
 //! # Scenario
 //!
-//! In this test we're given an AVR that waits for pulse on `PB0` and then
-//! increases an internal 4-bit counter, lightning up various pins as various
-//! bits in that internal counter are activated / deactivated.
+//! We're given an AVR that waits for pulse on `PB0` and then increases an
+//! internal 4-bit counter, lightning up pins as bits in that counter are
+//! activated and deactivated.
 //!
 //! # Purpose
 //!

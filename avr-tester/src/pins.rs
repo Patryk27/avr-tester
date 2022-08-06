@@ -3,9 +3,11 @@ mod digital_pin;
 
 use crate::*;
 use simavr_ffi as ffi;
+use std::marker::PhantomData;
 
 pub use self::{analog_pin::*, digital_pin::*};
 
+/// Manages analog & digital pins.
 pub struct Pins<'a> {
     avr: &'a mut AvrTester,
 }
@@ -16,12 +18,35 @@ impl<'a> Pins<'a> {
     }
 }
 
+/// Asynchronous equivalent of [`Pins`].
+///
+/// See [`avr_rt()`] for more details.
+pub struct PinsAsync {
+    _pd: PhantomData<()>,
+}
+
+impl PinsAsync {
+    pub(crate) fn new() -> Self {
+        Self {
+            _pd: Default::default(),
+        }
+    }
+}
+
 macro_rules! analog_pins {
     ( $( $fn:ident($irq:expr) ),* $(,)? ) => {
         impl<'a> Pins<'a> {
             $(
                 pub fn $fn(&mut self) -> AnalogPin<'_> {
                     AnalogPin::new(self.avr, $irq)
+                }
+            )*
+        }
+
+        impl PinsAsync {
+            $(
+                pub fn $fn(&self) -> AnalogPinAsync {
+                    AnalogPinAsync::new($irq)
                 }
             )*
         }
@@ -54,6 +79,14 @@ macro_rules! digital_pins {
             $(
                 pub fn $fn(&mut self) -> DigitalPin<'_> {
                     DigitalPin::new(self.avr, $port, $pin)
+                }
+            )*
+        }
+
+        impl PinsAsync {
+            $(
+                pub fn $fn(&self) -> DigitalPinAsync {
+                    DigitalPinAsync::new($port, $pin)
                 }
             )*
         }
