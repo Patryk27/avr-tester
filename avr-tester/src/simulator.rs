@@ -53,12 +53,16 @@ impl AvrSimulator {
         self.avr.run()
     }
 
+    pub fn uart_send(&mut self, id: usize, byte: u8) {
+        self.uart(id).send(byte)
+    }
+
     pub fn uart_recv(&mut self, id: usize) -> Option<u8> {
         self.uart(id).recv()
     }
 
-    pub fn uart_send(&mut self, id: usize, byte: u8) {
-        self.uart(id).send(byte)
+    pub fn uart_peek(&mut self, id: usize) -> Option<u8> {
+        self.uart(id).peek()
     }
 
     pub fn set_pin_high(&mut self, port: char, pin: u8, high: bool) {

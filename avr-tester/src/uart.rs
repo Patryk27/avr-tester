@@ -81,6 +81,11 @@ impl<'a> Uart<'a> {
     pub fn recv_byte(&mut self) -> Option<u8> {
         self.sim.uart_recv(self.id)
     }
+
+    /// Returns the first byte that's waiting to be retrieved (if any).
+    pub fn peek_byte(&mut self) -> Option<u8> {
+        self.sim.uart_peek(self.id)
+    }
 }
 
 /// Type that can be transmitted through [`Uart::send()`].

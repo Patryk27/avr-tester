@@ -122,18 +122,24 @@ impl Uart {
         }
     }
 
-    pub fn recv(&mut self) -> Option<u8> {
-        // Safety: `&mut self` ensures that while we are working, simavr won't
-        //         interrupt us
-        unsafe { self.get().pop_rx() }
-    }
-
     pub fn send(&mut self, byte: u8) {
         // Safety: `&mut self` ensures that while we are working, simavr won't
         //         interrupt us
         unsafe {
             self.get().push_tx(byte);
         }
+    }
+
+    pub fn recv(&mut self) -> Option<u8> {
+        // Safety: `&mut self` ensures that while we are working, simavr won't
+        //         interrupt us
+        unsafe { self.get().pop_rx() }
+    }
+
+    pub fn peek(&mut self) -> Option<u8> {
+        // Safety: `&mut self` ensures that while we are working, simavr won't
+        //         interrupt us
+        unsafe { self.get().peek_rx() }
     }
 
     fn get(&self) -> &UartInner {
@@ -180,7 +186,8 @@ impl UartInner {
     ///
     /// # Safety
     ///
-    /// Cannot be called simultaneously with [`Self::pop_rx()`].
+    /// Cannot be called simultaneously with [`Self::pop_rx()`] or
+    /// [`Self::peek_rx()`].
     unsafe fn push_rx(&self, value: u8) {
         let rx = &mut *self.rx.get();
 
@@ -189,17 +196,29 @@ impl UartInner {
         }
     }
 
-    /// Called by AvrTester's user when they want to retrieve a byte already
-    /// transmitted by AVR.
+    /// Called by AvrTester when user wants to retrieve a single byte from the
+    /// buffer.
     ///
     /// # Safety
     ///
-    /// Cannot be called simultaneously with [`Self::push_rx()`].
+    /// Cannot be called simultaneously with [`Self::push_rx()`] or
+    /// [`Self::peek_rx()`].
     unsafe fn pop_rx(&self) -> Option<u8> {
         (*self.rx.get()).pop_front()
     }
 
-    /// Called by AvrTester's user when they want to transmit a byte.
+    /// Called by AvrTester when user wants to peek at the currently-pending
+    /// byte.
+    ///
+    /// # Safety
+    ///
+    /// Cannot be called simultaneously with [`Self::push_rx()`] or
+    /// [`Self::pop_rx()`].
+    unsafe fn peek_rx(&self) -> Option<u8> {
+        (*self.rx.get()).front().copied()
+    }
+
+    /// Called by AvrTester when user wants to transmit a byte.
     ///
     /// # Safety
     ///
