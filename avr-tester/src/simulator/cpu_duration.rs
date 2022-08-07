@@ -1,4 +1,5 @@
 use crate::*;
+use core::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// Like [`core::time::Duration`], but in AVR's time; somewhat approximate¹.
@@ -478,5 +479,20 @@ impl SubAssign for CpuDuration {
         );
 
         self.cycles = self.cycles.saturating_sub(rhs.cycles);
+    }
+}
+
+/// # Examples
+///
+/// ```rust
+/// # use avr_tester::CpuDuration;
+/// #
+/// let tt = CpuDuration::new(16_000_000, 0).add_millis(123);
+///
+/// assert_eq!("123000 µs", tt.to_string());
+/// ```
+impl fmt::Display for CpuDuration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} µs", self.as_micros())
     }
 }
