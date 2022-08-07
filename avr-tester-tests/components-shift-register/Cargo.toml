@@ -7,4 +7,3 @@ edition = "2021"
 atmega-hal = { git = "https://github.com/Rahix/avr-hal", features = ["atmega328p", "rt"] }
 avr-hal-generic = { git = "https://github.com/Rahix/avr-hal" }
 panic-halt = "0.2"
-

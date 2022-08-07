@@ -66,7 +66,7 @@ fn precise() {
         avr.run_for_ms(1);
     }
 
-    assert_eq!(100, time_taken_ms);
+    assert_eq!(99, time_taken_ms);
 
     // Wait for the pin to get high
     let mut time_taken_ms = 0;

@@ -85,7 +85,7 @@ fn primitives() {
 #[test]
 fn expressions() {
     const TRIES: usize = 10;
-    const MAX_DEPTH: u64 = 16;
+    const MAX_DEPTH: u64 = 8;
 
     let mut avr = avr("xx-eval");
 
@@ -95,13 +95,6 @@ fn expressions() {
 
     for ty in Type::all() {
         for depth in 3..MAX_DEPTH {
-            if let Type::I128 | Type::U128 = ty {
-                if depth >= 6 {
-                    // TODO those seem to fail -- why?
-                    continue;
-                }
-            }
-
             println!("-> {:?}.{}", ty, depth);
 
             let mut tries = 0;
