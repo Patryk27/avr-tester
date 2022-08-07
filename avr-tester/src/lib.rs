@@ -247,36 +247,44 @@ impl AvrTesterAsync {
     pub async fn run_for(&self, n: impl IntoCycles) {
         let cycles = n.into_cycles();
 
-        ComponentRuntime::with(|rt| {
+        let fut = ComponentRuntime::with(|rt| {
             SleepFuture::new(CpuDuration::new(rt.clock_frequency(), cycles))
         });
+
+        fut.await;
     }
 
     /// Asynchronous equivalent of [`AvrTester::run_for_us()`].
     ///
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_us(&self, n: u64) {
-        ComponentRuntime::with(|rt| {
+        let fut = ComponentRuntime::with(|rt| {
             SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_micros(n))
         });
+
+        fut.await;
     }
 
     /// Asynchronous equivalent of [`AvrTester::run_for_ms()`].
     ///
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_ms(&self, n: u64) {
-        ComponentRuntime::with(|rt| {
+        let fut = ComponentRuntime::with(|rt| {
             SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_millis(n))
         });
+
+        fut.await;
     }
 
     /// Asynchronous equivalent of [`AvrTester::run_for_s()`].
     ///
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_s(&self, n: u64) {
-        ComponentRuntime::with(|rt| {
+        let fut = ComponentRuntime::with(|rt| {
             SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_secs(n))
         });
+
+        fut.await;
     }
 
     /// Asynchronous equivalent of [`AvrTester::pins()`].
