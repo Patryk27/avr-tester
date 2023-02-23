@@ -3,6 +3,7 @@ pub enum IoCtl {
     AdcGetIrq,
     IoPortGetIrq { port: char },
     IoPortGetState { port: char },
+    SpiGetIrq { spi: u8 },
     UartGetFlags { uart: char },
     UartGetIrq { uart: char },
     UartSetFlags { uart: char },
@@ -14,6 +15,7 @@ impl IoCtl {
             IoCtl::AdcGetIrq => [b'a', b'd', b'c', b'0'],
             IoCtl::IoPortGetIrq { port } => [b'i', b'o', b'g', port as u8],
             IoCtl::IoPortGetState { port } => [b'i', b'o', b's', port as u8],
+            IoCtl::SpiGetIrq { spi } => [b's', b'p', b'i', spi],
             IoCtl::UartGetFlags { uart } => [b'u', b'a', b'g', uart as u8],
             IoCtl::UartGetIrq { uart } => [b'u', b'a', b'r', uart as u8],
             IoCtl::UartSetFlags { uart } => [b'u', b'a', b's', uart as u8],
@@ -51,6 +53,11 @@ mod tests {
             expected: [b'i', b'o', b'g', b'C'],
         };
 
+        const TEST_SPI_GET_IRQ: TestCase = TestCase {
+            given: IoCtl::SpiGetIrq { spi: 3 },
+            expected: [b's', b'p', b'i', 3],
+        };
+
         const TEST_UART_SET_FLAGS: TestCase = TestCase {
             given: IoCtl::UartSetFlags { uart: '3' },
             expected: [b'u', b'a', b's', b'3'],
@@ -69,6 +76,7 @@ mod tests {
         #[test_case(TEST_ADC_GET_IRQ)]
         #[test_case(TEST_IOPORT_GET_STATE)]
         #[test_case(TEST_IOPORT_GET_IRQ)]
+        #[test_case(TEST_SPI_GET_IRQ)]
         #[test_case(TEST_UART_SET_FLAGS)]
         #[test_case(TEST_UART_GET_FLAGS)]
         #[test_case(TEST_UART_GET_IRQ)]

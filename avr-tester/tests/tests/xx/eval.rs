@@ -1,4 +1,4 @@
-//! Reader beware: <../README.md>
+//! Reader beware: <./README.md>
 //!
 //! # Scenario
 //!
@@ -59,15 +59,15 @@ fn primitives() {
                     continue;
                 };
 
-                avr.uart0().send(ty);
-                avr.uart0().send(Token::Op(op));
-                avr.uart0().send(Token::Const);
-                avr.uart0().send(lhs);
-                avr.uart0().send(Token::Const);
-                avr.uart0().send(rhs);
+                avr.uart0().write(ty);
+                avr.uart0().write(Token::Op(op));
+                avr.uart0().write(Token::Const);
+                avr.uart0().write(lhs);
+                avr.uart0().write(Token::Const);
+                avr.uart0().write(rhs);
                 avr.run_for_ms(ty.weight());
 
-                let actual = Value::recv(ty, &mut avr.uart0());
+                let actual = Value::read(ty, &mut avr.uart0());
 
                 if actual != expected {
                     panic!(
@@ -119,11 +119,11 @@ fn expressions() {
                     continue;
                 };
 
-                avr.uart0().send(ty);
-                avr.uart0().send(&expr);
+                avr.uart0().write(ty);
+                avr.uart0().write(&expr);
                 avr.run_for_ms(ty.weight() * depth);
 
-                let actual = Value::recv(ty, &mut avr.uart0());
+                let actual = Value::read(ty, &mut avr.uart0());
 
                 if actual != expected {
                     panic!(
@@ -185,9 +185,9 @@ impl Type {
     }
 }
 
-impl UartSend for Type {
-    fn send<'a>(&self, uart: &mut Uart<'a>) {
-        uart.send_byte(1 + *self as u8);
+impl Writable for Type {
+    fn write(&self, tx: &mut dyn Writer) {
+        tx.write(1 + *self as u8);
     }
 }
 
@@ -236,9 +236,9 @@ enum Token {
     Const,
 }
 
-impl UartSend for Token {
-    fn send<'a>(&self, uart: &mut Uart<'a>) {
-        uart.send_byte(match self {
+impl Writable for Token {
+    fn write(&self, tx: &mut dyn Writer) {
+        tx.write(match self {
             Token::Op(Op::Add) => 1,
             Token::Op(Op::Sub) => 2,
             Token::Op(Op::Mul) => 3,
@@ -302,35 +302,35 @@ impl Value {
         this
     }
 
-    fn recv(ty: Type, uart: &mut Uart<'_>) -> Self {
+    fn read(ty: Type, uart: &mut Uart<'_>) -> Self {
         match ty {
-            Type::I8 => Self::I8(i8::from_le_bytes(uart.recv())),
-            Type::U8 => Self::U8(u8::from_le_bytes(uart.recv())),
-            Type::I16 => Self::I16(i16::from_le_bytes(uart.recv())),
-            Type::U16 => Self::U16(u16::from_le_bytes(uart.recv())),
-            Type::I32 => Self::I32(i32::from_le_bytes(uart.recv())),
-            Type::U32 => Self::U32(u32::from_le_bytes(uart.recv())),
-            Type::I64 => Self::I64(i64::from_le_bytes(uart.recv())),
-            Type::U64 => Self::U64(u64::from_le_bytes(uart.recv())),
-            Type::I128 => Self::I128(i128::from_le_bytes(uart.recv())),
-            Type::U128 => Self::U128(u128::from_le_bytes(uart.recv())),
+            Type::I8 => Self::I8(i8::from_le_bytes(uart.read())),
+            Type::U8 => Self::U8(u8::from_le_bytes(uart.read())),
+            Type::I16 => Self::I16(i16::from_le_bytes(uart.read())),
+            Type::U16 => Self::U16(u16::from_le_bytes(uart.read())),
+            Type::I32 => Self::I32(i32::from_le_bytes(uart.read())),
+            Type::U32 => Self::U32(u32::from_le_bytes(uart.read())),
+            Type::I64 => Self::I64(i64::from_le_bytes(uart.read())),
+            Type::U64 => Self::U64(u64::from_le_bytes(uart.read())),
+            Type::I128 => Self::I128(i128::from_le_bytes(uart.read())),
+            Type::U128 => Self::U128(u128::from_le_bytes(uart.read())),
         }
     }
 }
 
-impl UartSend for Value {
-    fn send<'a>(&self, uart: &mut Uart<'a>) {
+impl Writable for Value {
+    fn write(&self, tx: &mut dyn Writer) {
         match *self {
-            Value::I8(value) => value.to_le_bytes().send(uart),
-            Value::U8(value) => value.to_le_bytes().send(uart),
-            Value::I16(value) => value.to_le_bytes().send(uart),
-            Value::U16(value) => value.to_le_bytes().send(uart),
-            Value::I32(value) => value.to_le_bytes().send(uart),
-            Value::U32(value) => value.to_le_bytes().send(uart),
-            Value::I64(value) => value.to_le_bytes().send(uart),
-            Value::U64(value) => value.to_le_bytes().send(uart),
-            Value::I128(value) => value.to_le_bytes().send(uart),
-            Value::U128(value) => value.to_le_bytes().send(uart),
+            Value::I8(value) => tx.write(value.to_le_bytes()),
+            Value::U8(value) => tx.write(value.to_le_bytes()),
+            Value::I16(value) => tx.write(value.to_le_bytes()),
+            Value::U16(value) => tx.write(value.to_le_bytes()),
+            Value::I32(value) => tx.write(value.to_le_bytes()),
+            Value::U32(value) => tx.write(value.to_le_bytes()),
+            Value::I64(value) => tx.write(value.to_le_bytes()),
+            Value::U64(value) => tx.write(value.to_le_bytes()),
+            Value::I128(value) => tx.write(value.to_le_bytes()),
+            Value::U128(value) => tx.write(value.to_le_bytes()),
         }
     }
 }
@@ -422,8 +422,8 @@ impl Expression {
     }
 }
 
-impl UartSend for Expression {
-    fn send<'a>(&self, uart: &mut Uart<'a>) {
+impl Writable for Expression {
+    fn write(&self, tx: &mut dyn Writer) {
         let (lhs, rhs, op) = match self {
             Self::Add(lhs, rhs) => (lhs, rhs, Op::Add),
             Self::Sub(lhs, rhs) => (lhs, rhs, Op::Sub),
@@ -432,14 +432,14 @@ impl UartSend for Expression {
             Self::Rem(lhs, rhs) => (lhs, rhs, Op::Rem),
 
             Self::Const(value) => {
-                uart.send(Token::Const);
-                uart.send(value);
+                tx.write(Token::Const);
+                tx.write(value);
                 return;
             }
         };
 
-        uart.send(Token::Op(op));
-        uart.send(&**lhs);
-        uart.send(&**rhs);
+        tx.write(Token::Op(op));
+        tx.write(&**lhs);
+        tx.write(&**rhs);
     }
 }

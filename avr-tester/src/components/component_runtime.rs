@@ -4,11 +4,11 @@ use std::cell::RefCell;
 pub struct ComponentRuntime {
     sim: AvrSimulator,
     clock_frequency: u32,
-    tt: CpuDuration,
+    tt: AvrDuration,
 }
 
 impl ComponentRuntime {
-    pub fn setup(sim: AvrSimulator, clock_frequency: u32, tt: CpuDuration) {
+    pub fn setup(sim: AvrSimulator, clock_frequency: u32, tt: AvrDuration) {
         RUNTIME.with(move |rt| {
             *rt.borrow_mut() = Some(Self {
                 sim,
@@ -47,7 +47,7 @@ impl ComponentRuntime {
         self.clock_frequency
     }
 
-    pub fn tt(&self) -> CpuDuration {
+    pub fn tt(&self) -> AvrDuration {
         self.tt
     }
 }

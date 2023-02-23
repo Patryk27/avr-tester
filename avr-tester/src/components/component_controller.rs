@@ -2,7 +2,7 @@ mod waker;
 
 use self::waker::*;
 use super::*;
-use std::{cell::RefCell, pin::Pin, rc::Rc, task::Context};
+use std::{cell::RefCell, fmt, pin::Pin, rc::Rc, task::Context};
 
 pub struct ComponentController {
     component: Pin<Box<dyn Future<Output = ()>>>,
@@ -39,13 +39,18 @@ impl ComponentController {
         let waker = waker();
         let mut cx = Context::from_waker(&waker);
 
-        let poll = self.component.as_mut().poll(&mut cx);
-
-        if poll.is_ready() {
+        if self.component.as_mut().poll(&mut cx).is_ready() {
             ComponentControllerResult::RemoveComponent
         } else {
             ComponentControllerResult::KeepComponent
         }
+    }
+}
+impl fmt::Debug for ComponentController {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ComponentController")
+            .field("state", &self.state)
+            .finish()
     }
 }
 

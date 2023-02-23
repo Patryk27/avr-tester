@@ -1,7 +1,7 @@
 //! Functional testing framework for [AVR] binaries, powered by [simavr]:
 //!
 //! ```no_run
-//! use avr_tester::AvrTester;
+//! use avr_tester::*;
 //!
 //! // Assuming `yourproject` implements an ROT-13 encoder:
 //!
@@ -15,13 +15,13 @@
 //!     avr.run_for_ms(1);
 //!
 //!     // Now, let's send the string:
-//!     avr.uart0().send("Hello, World!");
+//!     avr.uart0().write("Hello, World!");
 //!
 //!     // ... give the AVR a moment to retrieve it & send back, encoded:
 //!     avr.run_for_ms(1);
 //!
 //!     // ... and, finally, let's assert the outcome:
-//!     assert_eq!("Uryyb, Jbeyq!", avr.uart0().recv::<String>());
+//!     assert_eq!("Uryyb, Jbeyq!", avr.uart0().read::<String>());
 //! }
 //! ```
 //!
@@ -30,22 +30,28 @@
 //! [AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
 //! [simavr]: https://github.com/buserror/simavr
 
-#![feature(drain_filter)]
-
 mod builder;
 mod components;
+mod duration_ext;
 mod pins;
-mod simulator;
+mod read;
+mod spi;
 mod uart;
 mod utils;
+mod write;
 
-use self::simulator::*;
+use avr_simulator::{AvrSimulator, AvrState};
 use std::{marker::PhantomData, path::Path};
 
-pub use self::{builder::*, components::*, pins::*, simulator::CpuDuration, uart::*, utils::*};
+pub use self::{
+    builder::*, components::*, duration_ext::*, pins::*, read::*, spi::*, uart::*, utils::*,
+    write::*,
+};
+pub use avr_simulator::AvrDuration;
 
 /// Simulator's entry point; you can build it using [`AvrTester::atmega328p()`]
 /// or a similar function.
+#[derive(Debug)]
 pub struct AvrTester {
     sim: Option<AvrSimulator>,
     clock_frequency: u32,
@@ -56,16 +62,12 @@ pub struct AvrTester {
 impl AvrTester {
     pub(crate) fn new(
         mcu: &str,
-        firmware: impl AsRef<Path>,
         clock_frequency: u32,
+        firmware: impl AsRef<Path>,
         remaining_clock_cycles: Option<u64>,
     ) -> Self {
-        let mut sim = AvrSimulator::new(mcu, clock_frequency);
-
-        sim.flash(firmware);
-
         Self {
-            sim: Some(sim),
+            sim: Some(AvrSimulator::new(mcu, clock_frequency, firmware)),
             clock_frequency,
             remaining_clock_cycles,
             components: Components::new(),
@@ -76,41 +78,40 @@ impl AvrTester {
     /// to execute that instruction (e.g. `MUL` takes two cycles or so).
     ///
     /// Note that the number returned here is somewhat approximate (see
-    /// [`CpuDuration`]), but it's guaranteed to be at least one cycle.
+    /// [`AvrDuration`]), but it's guaranteed to be at least one cycle.
     ///
     /// See also:
     ///
     /// - [`Self::run_for_s()`],
     /// - [`Self::run_for_ms()`],
     /// - [`Self::run_for_us()`].
-    pub fn run(&mut self) -> CpuDuration {
-        let (state, tt) = self.sim().run();
+    pub fn run(&mut self) -> AvrDuration {
+        let step = self.sim().step();
 
-        assert!(tt.as_cycles() > 0);
-
-        self.components.run(&mut self.sim, self.clock_frequency, tt);
+        self.components
+            .run(&mut self.sim, self.clock_frequency, step.tt);
 
         if let Some(remaining_clock_cycles) = &mut self.remaining_clock_cycles {
-            *remaining_clock_cycles = remaining_clock_cycles.saturating_sub(tt.as_cycles());
+            *remaining_clock_cycles = remaining_clock_cycles.saturating_sub(step.tt.as_cycles());
 
             if *remaining_clock_cycles == 0 {
                 panic!("Test timed-out");
             }
         }
 
-        match state {
-            CpuState::Running => {
+        match step.state {
+            AvrState::Running => {
                 //
             }
 
-            CpuState::Crashed => {
+            AvrState::Crashed => {
                 panic!(
                     "AVR crashed (e.g. the program stepped on an invalid \
                      instruction)"
                 );
             }
 
-            CpuState::Sleeping => {
+            AvrState::Sleeping => {
                 panic!(
                     "AVR went to sleep (this panics, because AvrTester doesn't \
                      provide any way to wake up the microcontroller yet)"
@@ -118,15 +119,15 @@ impl AvrTester {
             }
 
             state => {
-                panic!("Unexpected CpuState: {:?}", state);
+                panic!("Unexpected AvrState: {:?}", state);
             }
         }
 
-        tt
+        step.tt
     }
 
     /// Runs firmware for given number of cycles (when given [`u64`]) or given
-    /// [`CpuDuration`].
+    /// [`AvrDuration`].
     ///
     /// See also:
     ///
@@ -151,7 +152,7 @@ impl AvrTester {
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_us(&mut self, n: u64) {
-        self.run_for(CpuDuration::micros(self, n));
+        self.run_for(AvrDuration::micros(self, n));
     }
 
     /// Runs firmware for given number of _AVR_ milliseconds, considering the
@@ -164,7 +165,7 @@ impl AvrTester {
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_ms(&mut self, n: u64) {
-        self.run_for(CpuDuration::millis(self, n));
+        self.run_for(AvrDuration::millis(self, n));
     }
 
     /// Runs firmware for given number of _AVR_ seconds, considering the clock
@@ -177,7 +178,7 @@ impl AvrTester {
     ///
     /// See also: [`Self::run()`].
     pub fn run_for_s(&mut self, n: u64) {
-        self.run_for(CpuDuration::secs(self, n));
+        self.run_for(AvrDuration::secs(self, n));
     }
 
     /// Returns an object providing read & write access to the analog & digital
@@ -186,25 +187,37 @@ impl AvrTester {
     /// Note that the returned object contains all possible pins for all of the
     /// existing AVRs, while the AVR of yours probably supports only a subset of
     /// those pins - trying to access a pin that does not exist for your AVR
-    /// will gracefully `panic!()`.
+    /// will panic.
     pub fn pins(&mut self) -> Pins<'_> {
         Pins::new(self)
     }
 
+    /// Returns an object providing access to SPI0 (i.e. the default SPI).
+    ///
+    /// Note that if your AVR doesn't support SPI, operating on it will panic.
+    pub fn spi0(&mut self) -> Spi<'_> {
+        Spi::new(self.sim(), 0)
+    }
+
+    /// Returns an object providing access to SPI1.
+    ///
+    /// Note that if your AVR doesn't support SPI, operating on it will panic.
+    pub fn spi1(&mut self) -> Spi<'_> {
+        Spi::new(self.sim(), 1)
+    }
+
     /// Returns an object providing access to UART0 (i.e. the default UART).
     ///
-    /// Note that if your AVR doesn't support UART0, operating on it will
-    /// gracefully `panic!()`.
+    /// Note that if your AVR doesn't support UART0, operating on it will panic.
     pub fn uart0(&mut self) -> Uart<'_> {
-        Uart::new(self.sim(), 0)
+        Uart::new(self.sim(), '0')
     }
 
     /// Returns an object providing access to UART1.
     ///
-    /// Note that if your AVR doesn't support UART1, operating on it will
-    /// gracefully `panic!()`.
+    /// Note that if your AVR doesn't support UART1, operating on it will panic.
     pub fn uart1(&mut self) -> Uart<'_> {
-        Uart::new(self.sim(), 1)
+        Uart::new(self.sim(), '1')
     }
 
     /// Returns an object providing acccess to components (aka _peripherals_)
@@ -237,7 +250,7 @@ impl AvrTesterAsync {
     /// Asynchronous equivalent of [`AvrTester::run()`].
     ///
     /// See [`avr_rt()`] for more details.
-    pub async fn run(&self) -> CpuDuration {
+    pub async fn run(&self) -> AvrDuration {
         ResumeFuture::new().await
     }
 
@@ -248,7 +261,7 @@ impl AvrTesterAsync {
         let cycles = n.into_cycles();
 
         let fut = ComponentRuntime::with(|rt| {
-            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), cycles))
+            SleepFuture::new(AvrDuration::new(rt.clock_frequency(), cycles))
         });
 
         fut.await;
@@ -259,7 +272,7 @@ impl AvrTesterAsync {
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_us(&self, n: u64) {
         let fut = ComponentRuntime::with(|rt| {
-            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_micros(n))
+            SleepFuture::new(AvrDuration::new(rt.clock_frequency(), 0).with_micros(n))
         });
 
         fut.await;
@@ -270,7 +283,7 @@ impl AvrTesterAsync {
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_ms(&self, n: u64) {
         let fut = ComponentRuntime::with(|rt| {
-            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_millis(n))
+            SleepFuture::new(AvrDuration::new(rt.clock_frequency(), 0).with_millis(n))
         });
 
         fut.await;
@@ -281,7 +294,7 @@ impl AvrTesterAsync {
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_s(&self, n: u64) {
         let fut = ComponentRuntime::with(|rt| {
-            SleepFuture::new(CpuDuration::new(rt.clock_frequency(), 0).with_secs(n))
+            SleepFuture::new(AvrDuration::new(rt.clock_frequency(), 0).with_secs(n))
         });
 
         fut.await;

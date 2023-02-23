@@ -1,16 +1,16 @@
 [package]
-name = "avr-tester"
+name = "avr-simulator"
 version = "0.2.0"
 edition = "2021"
 authors = ["Patryk Wychowaniec <pwychowaniec@pm.me>"]
 license = "MIT"
-description = "Functional testing framework for AVR firmware"
-readme = "../README.md"
+description = "Bare-bones wrapper for simavr"
 repository = "https://github.com/Patryk27/avr-tester"
 keywords = ["avr", "test", "framework", "microcontroller", "simavr"]
 
 [dependencies]
-avr-simulator = { path = "../avr-simulator", version = "0.2.0" }
+libc = "0.2"
+simavr-ffi = "0.1"
 
 [dev-dependencies]
-rand = "0.8"
+test-case = "2.1"

@@ -195,6 +195,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests-spi"
+version = "0.1.0"
+dependencies = [
+ "atmega-hal",
+ "avr-hal-generic",
+ "embedded-hal",
+ "panic-halt",
+]
+
+[[package]]
 name = "tests-timeout"
 version = "0.1.0"
 dependencies = [

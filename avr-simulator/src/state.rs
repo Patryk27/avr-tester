@@ -1,7 +1,7 @@
 use simavr_ffi as ffi;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CpuState {
+pub enum AvrState {
     Limbo,
     Stopped,
     Running,
@@ -12,8 +12,8 @@ pub enum CpuState {
     Crashed,
 }
 
-impl CpuState {
-    pub fn from_ffi(val: i32) -> Self {
+impl AvrState {
+    pub(crate) fn from_ffi(val: i32) -> Self {
         match val as u32 {
             ffi::cpu_Limbo => Self::Limbo,
             ffi::cpu_Stopped => Self::Stopped,
@@ -25,7 +25,7 @@ impl CpuState {
             ffi::cpu_Crashed => Self::Crashed,
 
             val => {
-                panic!("Unknown CpuState: {}", val);
+                panic!("Unknown AvrState: {}", val);
             }
         }
     }

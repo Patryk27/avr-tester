@@ -2,12 +2,12 @@ mod analog_pin;
 mod digital_pin;
 
 use crate::*;
-use simavr_ffi as ffi;
+use avr_simulator::ffi;
 use std::marker::PhantomData;
 
 pub use self::{analog_pin::*, digital_pin::*};
 
-/// Manages analog & digital pins.
+/// Provides access to analog and digital pins.
 pub struct Pins<'a> {
     avr: &'a mut AvrTester,
 }

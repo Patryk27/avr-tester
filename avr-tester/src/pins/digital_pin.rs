@@ -14,7 +14,7 @@ impl<'a> DigitalPin<'a> {
 
     /// Changes pin's state to low or high.
     pub fn set(&mut self, high: bool) {
-        self.avr.sim().set_pin_high(self.port, self.pin, high);
+        self.avr.sim().set_digital_pin(self.port, self.pin, high);
     }
 
     /// Changes pin's state to low.
@@ -43,7 +43,7 @@ impl<'a> DigitalPin<'a> {
 
     /// Returns whether pin's state is high.
     pub fn is_high(&mut self) -> bool {
-        self.avr.sim().is_pin_high(self.port, self.pin)
+        self.avr.sim().get_digital_pin(self.port, self.pin)
     }
 
     /// Asserts that pin's state is high or low.
@@ -72,8 +72,8 @@ impl<'a> DigitalPin<'a> {
     /// low).
     ///
     /// Returns duration it took for the pin to switch state.
-    pub fn pulse_in(&mut self) -> CpuDuration {
-        let mut tt = CpuDuration::zero(self.avr);
+    pub fn pulse_in(&mut self) -> AvrDuration {
+        let mut tt = AvrDuration::zero(self.avr);
         let state = self.is_high();
 
         while self.is_high() == state {
@@ -87,8 +87,8 @@ impl<'a> DigitalPin<'a> {
     /// immediately.
     ///
     /// Returns duration it took for the pin to get high.
-    pub fn wait_while_low(&mut self) -> CpuDuration {
-        let mut tt = CpuDuration::zero(self.avr);
+    pub fn wait_while_low(&mut self) -> AvrDuration {
+        let mut tt = AvrDuration::zero(self.avr);
 
         while self.is_low() {
             tt += self.avr.run();
@@ -101,8 +101,8 @@ impl<'a> DigitalPin<'a> {
     /// immediately.
     ///
     /// Returns duration it took for the pin to get low.
-    pub fn wait_while_high(&mut self) -> CpuDuration {
-        let mut tt = CpuDuration::zero(self.avr);
+    pub fn wait_while_high(&mut self) -> AvrDuration {
+        let mut tt = AvrDuration::zero(self.avr);
 
         while self.is_high() {
             tt += self.avr.run();
@@ -133,7 +133,7 @@ impl DigitalPinAsync {
     /// Asynchronous equivalent of [`DigitalPin::set()`].
     pub fn set(&self, high: bool) {
         ComponentRuntime::with(|rt| {
-            rt.sim().set_pin_high(self.port, self.pin, high);
+            rt.sim().set_digital_pin(self.port, self.pin, high);
         })
     }
 
@@ -163,7 +163,7 @@ impl DigitalPinAsync {
 
     /// Asynchronous equivalent of [`DigitalPin::is_high()`].
     pub fn is_high(&mut self) -> bool {
-        ComponentRuntime::with(|rt| rt.sim().is_pin_high(self.port, self.pin))
+        ComponentRuntime::with(|rt| rt.sim().get_digital_pin(self.port, self.pin))
     }
 
     /// Asynchronous equivalent of [`DigitalPin::assert_low()`].
@@ -179,8 +179,8 @@ impl DigitalPinAsync {
     }
 
     /// Asynchronous equivalent of [`DigitalPin::pulse_in()`].
-    pub async fn pulse_in(&mut self) -> CpuDuration {
-        let mut tt = ComponentRuntime::with(|rt| CpuDuration::new(rt.clock_frequency(), 0));
+    pub async fn pulse_in(&mut self) -> AvrDuration {
+        let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
         let state = self.is_high();
 
         while self.is_high() == state {
@@ -191,8 +191,8 @@ impl DigitalPinAsync {
     }
 
     /// Asynchronous equivalent of [`DigitalPin::wait_while_low()`].
-    pub async fn wait_while_low(&mut self) -> CpuDuration {
-        let mut tt = ComponentRuntime::with(|rt| CpuDuration::new(rt.clock_frequency(), 0));
+    pub async fn wait_while_low(&mut self) -> AvrDuration {
+        let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
 
         while self.is_low() {
             tt += avr_rt().run().await;
@@ -202,8 +202,8 @@ impl DigitalPinAsync {
     }
 
     /// Asynchronous equivalent of [`DigitalPin::wait_while_high()`].
-    pub async fn wait_while_high(&mut self) -> CpuDuration {
-        let mut tt = ComponentRuntime::with(|rt| CpuDuration::new(rt.clock_frequency(), 0));
+    pub async fn wait_while_high(&mut self) -> AvrDuration {
+        let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
 
         while self.is_high() {
             tt += avr_rt().run().await;

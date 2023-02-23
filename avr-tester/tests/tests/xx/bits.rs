@@ -1,4 +1,4 @@
-//! Reader beware: <../README.md>
+//! Reader beware: <./README.md>
 //!
 //! # Scenario
 //!

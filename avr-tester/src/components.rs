@@ -33,7 +33,7 @@ pub(crate) use self::{component_runtime::*, futures::*};
 /// #
 /// let mut avr = avr();
 ///
-/// avr.uart0().send([0x01, 0x02, 0x03]);
+/// avr.uart0().write([0x01, 0x02, 0x03]);
 ///
 /// for cycle in 0.. {
 ///     // Keep the watchdog happy:
@@ -46,7 +46,7 @@ pub(crate) use self::{component_runtime::*, futures::*};
 ///     }
 ///
 ///     // Check if the response has arrived:
-///     if let Some(response) = avr.uart0().recv_byte() {
+///     if let Some(response) = avr.uart0().try_read_byte() {
 ///         assert_eq!(0x06, response);
 ///         break;
 ///     }
@@ -86,17 +86,17 @@ pub(crate) use self::{component_runtime::*, futures::*};
 /// });
 ///
 /// // Perform the test:
-/// avr.uart0().send([0x01, 0x02, 0x03]);
+/// avr.uart0().write([0x01, 0x02, 0x03]);
 /// avr.run_for_ms(100);
-/// assert_eq!(Some(0x06), avr.uart0().recv_byte());
+/// assert_eq!(Some(0x06), avr.uart0().try_read_byte());
 /// ```
 ///
-/// Components are handy, because [`AvrTester`] automatically takes care of
+/// Components are handy, because AvrTester automatically takes care of
 /// their scheduling - we don't have to worry about `PB1` and `PB2`'s timings
 /// anymore: we just say "PB1 must be toggled every 5 ms", "PB2 must be toggled
 /// every 15 ms" and that's it.
 ///
-/// From [`AvrTester`]'s perspective, what happens here is basically:
+/// From AvrTester's perspective, what happens here is basically:
 ///
 /// ```text
 /// fn run_for_ms(ms):
@@ -113,7 +113,7 @@ pub(crate) use self::{component_runtime::*, futures::*};
 ///
 /// Writing components doesn't differ that much from writing regular tests - the
 /// most important caveat is that components must be asynchronous, so that
-/// [`AvrTester`] knows when a component has finished its "clock cycle".
+/// AvrTester knows when a component has finished its "clock cycle".
 ///
 /// This means that inside components you can't access regular [`AvrTester`] -
 /// you have to call [`avr_rt()`], which returns [`AvrTesterAsync`] with its
@@ -142,6 +142,7 @@ pub(crate) use self::{component_runtime::*, futures::*};
 ///     }
 /// });
 /// ```
+#[derive(Debug)]
 pub struct Components {
     components: Vec<ComponentController>,
 }
@@ -168,7 +169,7 @@ impl Components {
         &mut self,
         sim: &mut Option<AvrSimulator>,
         clock_frequency: u32,
-        tt: CpuDuration,
+        tt: AvrDuration,
     ) {
         if self.components.is_empty() {
             return;
@@ -176,11 +177,26 @@ impl Components {
 
         ComponentRuntime::setup(sim.take().unwrap(), clock_frequency, tt);
 
-        self.components
-            .drain_filter(|component| match component.run() {
-                ComponentControllerResult::KeepComponent => false,
-                ComponentControllerResult::RemoveComponent => true,
-            });
+        // ---
+
+        let mut components_to_remove = Vec::new();
+
+        for (component_idx, component) in self.components.iter_mut().enumerate() {
+            match component.run() {
+                ComponentControllerResult::KeepComponent => {
+                    //
+                }
+                ComponentControllerResult::RemoveComponent => {
+                    components_to_remove.push(component_idx);
+                }
+            }
+        }
+
+        for (removed_components, component_idx) in components_to_remove.into_iter().enumerate() {
+            self.components.remove(component_idx - removed_components);
+        }
+
+        // ---
 
         *sim = Some(ComponentRuntime::destroy());
     }

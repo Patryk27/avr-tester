@@ -9,6 +9,9 @@ mod pins_analog;
 #[path = "tests/pins-digital.rs"]
 mod pins_digital;
 
+#[path = "tests/spi.rs"]
+mod spi;
+
 #[path = "tests/timeout.rs"]
 mod timeout;
 
@@ -30,9 +33,9 @@ mod prelude {
 use avr_tester::{AvrTester, AvrTesterBuilder};
 use std::{path::Path, process::Command};
 
-/// Compiles `test` and returns `AvrTester` for it.
+/// Compiles `test` and returns AvrTester for it.
 ///
-/// Note that this function has been written with `AvrTester`'s test suite in
+/// Note that this function has been written with AvrTester's test suite in
 /// mind - if you wanted to re-use it, consider doing something simpler - say:
 ///
 /// ```

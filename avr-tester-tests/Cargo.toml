@@ -3,6 +3,7 @@ members = [
     "components-shift-register",
     "pins-analog",
     "pins-digital",
+    "spi",
     "timeout",
     "uart",
     "xx-bits",

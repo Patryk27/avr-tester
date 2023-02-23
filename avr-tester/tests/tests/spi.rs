@@ -1,25 +1,25 @@
 //! # Scenario
 //!
-//! We're given an AVR that implements a ROT13 encoder on UART0.
+//! We're given an AVR that implements a ROT13 encoder using the SPI interface.
 //!
 //! # Firmware
 //!
-//! See: [../../../avr-tester-tests/uart/src/main.rs].
-//! See also: [./spi.rs].
+//! See: [../../../avr-tester-tests/spi/src/main.rs].
+//! See also: [./uart.rs].
 
 use crate::prelude::*;
 
 #[test]
 fn test() {
-    let mut avr = avr("uart");
+    let mut avr = avr("spi");
 
     avr.run_for_ms(1);
 
     let mut assert = |given: &str, expected: &str| {
-        avr.uart0().write(given);
+        avr.spi0().write(given);
         avr.run_for_ms(50);
 
-        assert_eq!(expected, avr.uart0().read::<String>());
+        assert_eq!(expected, avr.spi0().read::<String>());
     };
 
     assert("Hello, World!", "Uryyb, Jbeyq!");

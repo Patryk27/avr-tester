@@ -1,15 +1,13 @@
 use super::*;
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 pub struct SleepFuture {
-    duration: CpuDuration,
+    duration: AvrDuration,
 }
 
 impl SleepFuture {
-    pub fn new(duration: CpuDuration) -> Self {
+    pub fn new(duration: AvrDuration) -> Self {
         Self { duration }
     }
 }

@@ -10,7 +10,7 @@ impl IntoCycles for u64 {
     }
 }
 
-impl IntoCycles for CpuDuration {
+impl IntoCycles for AvrDuration {
     fn into_cycles(self) -> u64 {
         self.as_cycles()
     }

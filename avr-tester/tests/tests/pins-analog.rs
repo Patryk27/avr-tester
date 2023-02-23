@@ -27,10 +27,10 @@ fn test() {
         (1024, true),
     ];
 
-    for (millivolts, expected_pd0) in assertions {
-        dbg!(&millivolts);
+    for (voltage, expected_pd0) in assertions {
+        dbg!(&voltage);
 
-        avr.pins().adc2().set_mv(millivolts);
+        avr.pins().adc2().set_mv(voltage);
         avr.run_for_ms(1);
         avr.pins().pd0().assert(expected_pd0);
     }

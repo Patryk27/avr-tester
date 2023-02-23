@@ -13,7 +13,7 @@ impl AvrTesterBuilder {
     /// To avoid typos, it's preferred that you use helper functions such as
     /// [`AvrTester::atmega328p()`]; this additional constructor in here has
     /// been provided just in case there's some AVR supported by simavr that has
-    /// not been yet exposed through [`AvrTester`].
+    /// not been yet exposed through AvrTester.
     pub fn new(mcu: impl ToString) -> Self {
         Self {
             mcu: mcu.to_string(),
@@ -141,7 +141,7 @@ impl AvrTesterBuilder {
             .map(|timeout| (timeout.as_secs_f32() * (clock_frequency as f32)))
             .map(|cc| cc as _);
 
-        AvrTester::new(&self.mcu, firmware, clock_frequency, remaining_clock_cycles)
+        AvrTester::new(&self.mcu, clock_frequency, firmware, remaining_clock_cycles)
     }
 }
 

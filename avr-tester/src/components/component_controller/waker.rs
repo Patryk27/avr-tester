@@ -1,7 +1,5 @@
-use std::{
-    ptr,
-    task::{RawWaker, RawWakerVTable, Waker},
-};
+use std::ptr;
+use std::task::{RawWaker, RawWakerVTable, Waker};
 
 const NOOP_WAKER_VTABLE: RawWakerVTable = RawWakerVTable::new(waker_clone, noop, noop, noop);
 

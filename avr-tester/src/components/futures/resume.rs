@@ -1,8 +1,6 @@
 use super::*;
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 pub struct ResumeFuture {
     yielded: bool,
@@ -15,7 +13,7 @@ impl ResumeFuture {
 }
 
 impl Future for ResumeFuture {
-    type Output = CpuDuration;
+    type Output = AvrDuration;
 
     fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();

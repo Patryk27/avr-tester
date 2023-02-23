@@ -1,6 +1,6 @@
 use crate::*;
 
-/// Manages a single analog pin (e.g. `ADC1`).
+/// Provides access to a single analog pin, e.g. `ADC1`.
 pub struct AnalogPin<'a> {
     avr: &'a mut AvrTester,
     pin: u32,
@@ -13,7 +13,7 @@ impl<'a> AnalogPin<'a> {
 
     /// Applies `voltage` millivolts to this ADC.
     pub fn set_mv(&mut self, voltage: u32) {
-        self.avr.sim().set_adc_voltage(self.pin as _, voltage);
+        self.avr.sim().set_analog_pin(self.pin as _, voltage);
     }
 }
 
@@ -32,7 +32,7 @@ impl AnalogPinAsync {
     /// Asynchronous equivalent of [`AnalogPin::set_mv()`].
     pub fn set_mv(&self, voltage: u32) {
         ComponentRuntime::with(|rt| {
-            rt.sim().set_adc_voltage(self.pin as _, voltage);
+            rt.sim().set_analog_pin(self.pin as _, voltage);
         });
     }
 }

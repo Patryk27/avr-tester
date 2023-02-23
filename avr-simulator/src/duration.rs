@@ -1,34 +1,29 @@
-use crate::*;
-use core::fmt;
+use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-/// Like [`core::time::Duration`], but in AVR's time; somewhat approximate¹.
+/// Like [`std::time::Duration`], but in AVR cycles; somewhat approximate¹.
 ///
 /// ¹ <https://github.com/buserror/simavr/blob/b3ea4f93e18fa5059f76060ff718dc544ca48009/simavr/sim/sim_core.c#L621>
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CpuDuration {
+pub struct AvrDuration {
     clock_frequency: u32,
     cycles: u64,
 }
 
-impl CpuDuration {
+impl AvrDuration {
     /// Creates a new duration for given clock frequency and number of cycles:
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// CpuDuration::new(
+    /// AvrDuration::new(
     ///     16_000_000, /* 16 MHz */
     ///     8_000_000, /* 8 million clock cycles (=500ms here) */
     /// );
     /// ```
     ///
-    /// Usually, for convenience, you'll want to use one of:
-    ///
-    /// - [`Self::zero()`],
-    /// - [`Self::micros()`],
-    /// - [`Self::millis()`],
-    /// - [`Self::secs()`].
+    /// If you're using AvrTester, you might find `AvrDurationExt` more
+    /// convenient than this constructor.
     pub const fn new(clock_frequency: u32, cycles: u64) -> Self {
         Self {
             clock_frequency,
@@ -36,76 +31,14 @@ impl CpuDuration {
         }
     }
 
-    /// Creates a duration of zero cycles, using clock frequency from given
-    /// [`AvrTester`].
-    ///
-    /// See also: [`Self::new()`].
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use avr_tester::CpuDuration;
-    /// # let avr = panic!();
-    /// #
-    /// let duration = CpuDuration::zero(&avr).with_millis(150);
-    /// ```
-    pub fn zero(avr: &AvrTester) -> Self {
-        Self::new(avr.clock_frequency, 0)
-    }
-
-    /// Creates a duration of `n` microseconds, using clock frequency from given
-    /// [`AvrTester`].
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use avr_tester::CpuDuration;
-    /// # let avr = panic!();
-    /// #
-    /// let duration = CpuDuration::micros(&avr, 15);
-    /// ```
-    pub fn micros(avr: &AvrTester, n: u64) -> Self {
-        Self::zero(avr).add_micros(n)
-    }
-
-    /// Creates a duration of `n` milliseconds, using clock frequency from given
-    /// [`AvrTester`].
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use avr_tester::CpuDuration;
-    /// # let avr = panic!();
-    /// #
-    /// let duration = CpuDuration::millis(&avr, 15);
-    /// ```
-    pub fn millis(avr: &AvrTester, n: u64) -> Self {
-        Self::zero(avr).add_millis(n)
-    }
-
-    /// Creates a duration of `n` seconds, using clock frequency from given
-    /// [`AvrTester`].
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use avr_tester::CpuDuration;
-    /// # let avr = panic!();
-    /// #
-    /// let duration = CpuDuration::secs(&avr, 15);
-    /// ```
-    pub fn secs(avr: &AvrTester, n: u64) -> Self {
-        Self::zero(avr).add_secs(n)
-    }
-
     /// Returns a new duration with increased number of cycles.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(500, tt.as_millis());
     /// assert_eq!(750, tt.add_cycles(4_000_000).as_millis());
@@ -120,9 +53,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(500, tt.as_millis());
     /// assert_eq!(501, tt.add_micros(1_000).as_millis());
@@ -136,9 +69,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(500, tt.as_millis());
     /// assert_eq!(515, tt.add_millis(15).as_millis());
@@ -152,9 +85,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(500, tt.as_millis());
     /// assert_eq!(2500, tt.add_secs(2).as_millis());
@@ -168,9 +101,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(250, tt.with_cycles(4_000_000).as_millis());
     /// ```
@@ -184,9 +117,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(1, tt.with_micros(1_000).as_millis());
     /// ```
@@ -199,9 +132,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(15, tt.with_millis(15).as_millis());
     /// ```
@@ -214,9 +147,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(2000, tt.with_secs(2).as_millis());
     /// ```
@@ -229,9 +162,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(16_000_000, tt.clock_frequency());
     /// ```
@@ -244,17 +177,17 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 8_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 8_000_000);
     ///
     /// assert_eq!(8_000_000, tt.as_cycles());
     /// ```
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 0).add_secs(3);
+    /// let tt = AvrDuration::new(16_000_000, 0).add_secs(3);
     ///
     /// assert_eq!(48_000_000, tt.as_cycles());
     /// ```
@@ -267,9 +200,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 40);
+    /// let tt = AvrDuration::new(16_000_000, 40);
     ///
     /// assert_eq!(3, tt.as_micros());
     /// ```
@@ -282,9 +215,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 40);
+    /// let tt = AvrDuration::new(16_000_000, 40);
     ///
     /// assert_eq!(2.5, tt.as_micros_f64());
     /// ```
@@ -297,9 +230,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 40_000);
+    /// let tt = AvrDuration::new(16_000_000, 40_000);
     ///
     /// assert_eq!(3, tt.as_millis());
     /// ```
@@ -312,9 +245,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 40_000);
+    /// let tt = AvrDuration::new(16_000_000, 40_000);
     ///
     /// assert_eq!(2.5, tt.as_millis_f64());
     /// ```
@@ -327,9 +260,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 40_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 40_000_000);
     ///
     /// assert_eq!(3, tt.as_secs());
     /// ```
@@ -342,9 +275,9 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt = CpuDuration::new(16_000_000, 40_000_000);
+    /// let tt = AvrDuration::new(16_000_000, 40_000_000);
     ///
     /// assert_eq!(2.5, tt.as_secs_f64());
     /// ```
@@ -357,10 +290,10 @@ impl CpuDuration {
     /// # Examples
     ///
     /// ```
-    /// # use avr_tester::CpuDuration;
+    /// # use avr_simulator::AvrDuration;
     /// #
-    /// let tt1 = CpuDuration::new(16_000_000, 0);
-    /// let tt2 = CpuDuration::new(16_000_000, 10_000);
+    /// let tt1 = AvrDuration::new(16_000_000, 0);
+    /// let tt2 = AvrDuration::new(16_000_000, 10_000);
     ///
     /// assert!(tt1.is_zero());
     /// assert!(!tt2.is_zero());
@@ -373,17 +306,17 @@ impl CpuDuration {
 /// # Examples
 ///
 /// ```
-/// # use avr_tester::CpuDuration;
+/// # use avr_simulator::AvrDuration;
 /// #
-/// let a = CpuDuration::new(16_000_000, 1_000);
-/// let b = CpuDuration::new(16_000_000, 2_000);
+/// let a = AvrDuration::new(16_000_000, 1_000);
+/// let b = AvrDuration::new(16_000_000, 2_000);
 ///
 /// assert_eq!(
-///     CpuDuration::new(16_000_000, 3_000),
+///     AvrDuration::new(16_000_000, 3_000),
 ///     a + b,
 /// );
 /// ```
-impl Add for CpuDuration {
+impl Add for AvrDuration {
     type Output = Self;
 
     fn add(mut self, rhs: Self) -> Self::Output {
@@ -395,15 +328,15 @@ impl Add for CpuDuration {
 /// # Examples
 ///
 /// ```
-/// # use avr_tester::CpuDuration;
+/// # use avr_simulator::AvrDuration;
 /// #
-/// let mut a = CpuDuration::new(16_000_000, 1_000);
+/// let mut a = AvrDuration::new(16_000_000, 1_000);
 ///
-/// a += CpuDuration::new(16_000_000, 2_000);
+/// a += AvrDuration::new(16_000_000, 2_000);
 ///
-/// assert_eq!(CpuDuration::new(16_000_000, 3_000), a);
+/// assert_eq!(AvrDuration::new(16_000_000, 3_000), a);
 /// ```
-impl AddAssign for CpuDuration {
+impl AddAssign for AvrDuration {
     fn add_assign(&mut self, rhs: Self) {
         assert_eq!(
             self.clock_frequency, rhs.clock_frequency,
@@ -418,29 +351,29 @@ impl AddAssign for CpuDuration {
 /// # Examples
 ///
 /// ```
-/// # use avr_tester::CpuDuration;
+/// # use avr_simulator::AvrDuration;
 /// #
-/// let a = CpuDuration::new(16_000_000, 3_000);
-/// let b = CpuDuration::new(16_000_000, 2_000);
+/// let a = AvrDuration::new(16_000_000, 3_000);
+/// let b = AvrDuration::new(16_000_000, 2_000);
 ///
 /// assert_eq!(
-///     CpuDuration::new(16_000_000, 1_000),
+///     AvrDuration::new(16_000_000, 1_000),
 ///     a - b,
 /// );
 /// ```
 ///
 /// ```
-/// # use avr_tester::CpuDuration;
+/// # use avr_simulator::AvrDuration;
 /// #
-/// let a = CpuDuration::new(16_000_000, 3_000);
-/// let b = CpuDuration::new(16_000_000, 4_000);
+/// let a = AvrDuration::new(16_000_000, 3_000);
+/// let b = AvrDuration::new(16_000_000, 4_000);
 ///
 /// assert_eq!(
-///     CpuDuration::new(16_000_000, 0),
+///     AvrDuration::new(16_000_000, 0),
 ///     a - b,
 /// );
 /// ```
-impl Sub for CpuDuration {
+impl Sub for AvrDuration {
     type Output = Self;
 
     fn sub(mut self, rhs: Self) -> Self::Output {
@@ -452,25 +385,25 @@ impl Sub for CpuDuration {
 /// # Examples
 ///
 /// ```
-/// # use avr_tester::CpuDuration;
+/// # use avr_simulator::AvrDuration;
 /// #
-/// let mut a = CpuDuration::new(16_000_000, 3_000);
+/// let mut a = AvrDuration::new(16_000_000, 3_000);
 ///
-/// a -= CpuDuration::new(16_000_000, 2_000);
+/// a -= AvrDuration::new(16_000_000, 2_000);
 ///
-/// assert_eq!(CpuDuration::new(16_000_000, 1_000), a);
+/// assert_eq!(AvrDuration::new(16_000_000, 1_000), a);
 /// ```
 ///
 /// ```
-/// # use avr_tester::CpuDuration;
+/// # use avr_simulator::AvrDuration;
 /// #
-/// let mut a = CpuDuration::new(16_000_000, 3_000);
+/// let mut a = AvrDuration::new(16_000_000, 3_000);
 ///
-/// a -= CpuDuration::new(16_000_000, 4_000);
+/// a -= AvrDuration::new(16_000_000, 4_000);
 ///
-/// assert_eq!(CpuDuration::new(16_000_000, 0), a);
+/// assert_eq!(AvrDuration::new(16_000_000, 0), a);
 /// ```
-impl SubAssign for CpuDuration {
+impl SubAssign for AvrDuration {
     fn sub_assign(&mut self, rhs: Self) {
         assert_eq!(
             self.clock_frequency, rhs.clock_frequency,
@@ -485,13 +418,13 @@ impl SubAssign for CpuDuration {
 /// # Examples
 ///
 /// ```rust
-/// # use avr_tester::CpuDuration;
+/// # use avr_simulator::AvrDuration;
 /// #
-/// let tt = CpuDuration::new(16_000_000, 0).add_millis(123);
+/// let tt = AvrDuration::new(16_000_000, 0).add_millis(123);
 ///
 /// assert_eq!("123000 µs", tt.to_string());
 /// ```
-impl fmt::Display for CpuDuration {
+impl fmt::Display for AvrDuration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} µs", self.as_micros())
     }
