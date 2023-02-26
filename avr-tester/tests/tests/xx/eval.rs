@@ -8,8 +8,8 @@
 //! but represented in a binary protocol) and sends back a single number
 //! representing the expression's result.
 //!
-//! The evaluator supports all Rust integer types, although certain operations
-//! (e.g. 128-bit division) have to be skipped due to missing intrinsics.
+//! The evaluator supports all Rust integer types and f32, although certain
+//! operations (e.g. 128-bit division) are skipped due to missing intrinsics.
 //!
 //! # Purpose
 //!
@@ -24,235 +24,272 @@
 //! See: [../../../../avr-tester-tests/xx-eval/src/main.rs].
 
 use crate::prelude::*;
+use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 #[test]
-fn primitives() {
-    const TRIES: usize = 100;
-
+fn smoke_i8() {
     let mut avr = avr("xx-eval");
 
+    // Give the firmware a moment to initialize
     avr.run_for_ms(1);
 
-    for ty in Type::all() {
-        for op in Op::all() {
-            if !ty.supports(op) {
-                println!("-> {:?}.{:?} (skipping; not supported on AVR)", ty, op);
-                continue;
-            }
+    // Check ranges
+    assert(&mut avr, Expression::Value(Value::I8(i8::MIN)));
+    assert(&mut avr, Expression::Value(Value::I8(i8::MAX)));
 
-            println!("-> {:?}.{:?}", ty, op);
+    // Check non-overflowing arithmetic
+    assert(&mut avr, Expression::Add(make_i8(10), make_i8(23)));
+    assert(&mut avr, Expression::Sub(make_i8(10), make_i8(23)));
+    assert(&mut avr, Expression::Mul(make_i8(10), make_i8(5)));
+    assert(&mut avr, Expression::Div(make_i8(123), make_i8(10)));
+    assert(&mut avr, Expression::Rem(make_i8(123), make_i8(10)));
+    assert(&mut avr, Expression::Neg(make_i8(123)));
 
-            let mut tries = 0;
-
-            while tries < TRIES {
-                let random_value = match op {
-                    Op::Mul => Value::random_half,
-                    _ => Value::random,
-                };
-
-                let lhs = random_value(ty);
-                let rhs = random_value(ty);
-
-                let expected = if let Some(value) = op.apply()(lhs, rhs) {
-                    value
-                } else {
-                    continue;
-                };
-
-                avr.uart0().write(ty);
-                avr.uart0().write(Token::Op(op));
-                avr.uart0().write(Token::Const);
-                avr.uart0().write(lhs);
-                avr.uart0().write(Token::Const);
-                avr.uart0().write(rhs);
-                avr.run_for_ms(ty.weight());
-
-                let actual = Value::read(ty, &mut avr.uart0());
-
-                if actual != expected {
-                    panic!(
-                        "{:?} {:?} {:?} is equal to {:?}, but AVR returned {:?}",
-                        lhs, op, rhs, expected, actual
-                    );
-                }
-
-                tries += 1;
-            }
-        }
-    }
+    // Check overflowing arithmetic
+    assert(&mut avr, Expression::Add(make_i8(123), make_i8(100)));
+    assert(&mut avr, Expression::Sub(make_i8(-100), make_i8(123)));
+    assert(&mut avr, Expression::Mul(make_i8(123), make_i8(55)));
 }
 
 #[test]
-fn expressions() {
-    const TRIES: usize = 10;
-    const MAX_DEPTH: u64 = 8;
-
+fn smoke_u8() {
     let mut avr = avr("xx-eval");
 
+    // Give the firmware a moment to initialize
     avr.run_for_ms(1);
 
-    let mut rng = thread_rng();
+    // Check ranges
+    assert(&mut avr, Expression::Value(Value::U8(u8::MIN)));
+    assert(&mut avr, Expression::Value(Value::U8(u8::MAX)));
 
-    for ty in Type::all() {
-        for depth in 3..MAX_DEPTH {
-            println!("-> {:?}.{}", ty, depth);
+    // Check non-overflowing arithmetic
+    assert(&mut avr, Expression::Add(make_u8(10), make_u8(23)));
+    assert(&mut avr, Expression::Sub(make_u8(23), make_u8(10)));
+    assert(&mut avr, Expression::Mul(make_u8(10), make_u8(5)));
+    assert(&mut avr, Expression::Div(make_u8(123), make_u8(10)));
+    assert(&mut avr, Expression::Rem(make_u8(123), make_u8(10)));
 
-            let mut tries = 0;
+    // Check overflowing arithmetic
+    assert(&mut avr, Expression::Add(make_u8(123), make_u8(200)));
+    assert(&mut avr, Expression::Sub(make_u8(100), make_u8(123)));
+    assert(&mut avr, Expression::Mul(make_u8(123), make_u8(55)));
+}
 
-            while tries < TRIES {
-                let mut expr = Expression::Const(Value::random_half(ty));
+#[test]
+fn smoke_i16() {
+    let mut avr = avr("xx-eval");
 
-                for _ in 0..=depth {
-                    let build_expression = Expression::from_op(Op::random(ty));
-                    let value = Box::new(Expression::Const(Value::random_half(ty)));
+    // Give the firmware a moment to initialize
+    avr.run_for_ms(1);
 
-                    expr = if rng.gen::<bool>() {
-                        build_expression(Box::new(expr), value)
-                    } else {
-                        build_expression(value, Box::new(expr))
-                    };
+    // Check ranges
+    assert(&mut avr, Expression::Value(Value::I16(i16::MIN)));
+    assert(&mut avr, Expression::Value(Value::I16(i16::MAX)));
+
+    // Check non-overflowing arithmetic
+    assert(&mut avr, Expression::Add(make_i16(1000), make_i16(2300)));
+    assert(&mut avr, Expression::Sub(make_i16(1000), make_i16(2300)));
+    assert(&mut avr, Expression::Mul(make_i16(1000), make_i16(50)));
+    assert(&mut avr, Expression::Div(make_i16(12345), make_i16(123)));
+    assert(&mut avr, Expression::Rem(make_i16(12345), make_i16(123)));
+    assert(&mut avr, Expression::Neg(make_i16(12345)));
+
+    // Check overflowing arithmetic
+    assert(&mut avr, Expression::Add(make_i16(30000), make_i16(23456)));
+    assert(&mut avr, Expression::Sub(make_i16(-30000), make_i16(23456)));
+    assert(&mut avr, Expression::Mul(make_i16(12345), make_i16(234)));
+}
+
+#[track_caller]
+fn assert(avr: &mut AvrTester, expr: Expression) {
+    let expected = expr.eval();
+
+    println!("{:?} => {:?}", expr, expected);
+
+    avr.uart0().write(expr);
+    avr.run_for_ms(50);
+
+    let actual: Value = avr.uart0().read();
+
+    if actual != expected {
+        panic!("Mismatch: {:?} != {:?}", actual, expected);
+    }
+}
+
+#[derive(Clone, Debug)]
+enum Expression {
+    /// `value`
+    Value(Value),
+
+    /// `lhs + rhs`
+    Add(Box<Self>, Box<Self>),
+
+    /// `lhs - rhs`
+    Sub(Box<Self>, Box<Self>),
+
+    /// `lhs * rhs`
+    Mul(Box<Self>, Box<Self>),
+
+    /// `lhs / rhs`
+    Div(Box<Self>, Box<Self>),
+
+    /// `lhs % rhs`
+    Rem(Box<Self>, Box<Self>),
+
+    /// `-expr`
+    Neg(Box<Self>),
+
+    /// `lhs == rhs`
+    Eq(Box<Self>, Box<Self>),
+
+    /// `lhs != rhs`
+    Neq(Box<Self>, Box<Self>),
+
+    /// `lhs > rhs`
+    Gt(Box<Self>, Box<Self>),
+
+    /// `lhs >= rhs`
+    GtEq(Box<Self>, Box<Self>),
+
+    /// `lhs < rhs`
+    Lt(Box<Self>, Box<Self>),
+
+    /// `lhs <= rhs`
+    LtEq(Box<Self>, Box<Self>),
+
+    /// `expr as type`
+    Cast(Box<Self>, Type),
+}
+
+impl Expression {
+    fn eval(&self) -> Value {
+        macro_rules! eval_math_op {
+            ($expr:expr, $op:ident) => {{
+                match $expr.eval() {
+                    Value::I8(expr) => Value::I8(expr.$op()),
+                    Value::I16(expr) => Value::I16(expr.$op()),
+                    Value::I32(expr) => Value::I32(expr.$op()),
+                    Value::I64(expr) => Value::I64(expr.$op()),
+                    Value::I128(expr) => Value::I128(expr.$op()),
+                    Value::F32(expr) => Value::F32(expr.$op()),
+                    expr => {
+                        panic!("Invalid operation: {} {:?}", stringify!($op), expr);
+                    }
                 }
+            }};
 
-                let expected = if let Some(value) = expr.eval() {
-                    value
-                } else {
-                    continue;
-                };
-
-                avr.uart0().write(ty);
-                avr.uart0().write(&expr);
-                avr.run_for_ms(ty.weight() * depth);
-
-                let actual = Value::read(ty, &mut avr.uart0());
-
-                if actual != expected {
-                    panic!(
-                        "{:?} is equal to {:?}, but AVR returned {:?}",
-                        expr, expected, actual
-                    );
+            ($lhs:expr, $rhs:expr, $op:ident) => {{
+                match ($lhs.eval(), $rhs.eval()) {
+                    (Value::I8(lhs), Value::I8(rhs)) => Value::I8(lhs.$op(rhs)),
+                    (Value::U8(lhs), Value::U8(rhs)) => Value::U8(lhs.$op(rhs)),
+                    (Value::I16(lhs), Value::I16(rhs)) => Value::I16(lhs.$op(rhs)),
+                    (Value::U16(lhs), Value::U16(rhs)) => Value::U16(lhs.$op(rhs)),
+                    (Value::I32(lhs), Value::I32(rhs)) => Value::I32(lhs.$op(rhs)),
+                    (Value::U32(lhs), Value::U32(rhs)) => Value::U32(lhs.$op(rhs)),
+                    (Value::I64(lhs), Value::I64(rhs)) => Value::I64(lhs.$op(rhs)),
+                    (Value::U64(lhs), Value::U64(rhs)) => Value::U64(lhs.$op(rhs)),
+                    (Value::I128(lhs), Value::I128(rhs)) => Value::I128(lhs.$op(rhs)),
+                    (Value::U128(lhs), Value::U128(rhs)) => Value::U128(lhs.$op(rhs)),
+                    (Value::F32(lhs), Value::F32(rhs)) => Value::F32(lhs.$op(rhs)),
+                    (lhs, rhs) => {
+                        panic!("Invalid operation: {:?} {} {:?}", lhs, stringify!($op), rhs);
+                    }
                 }
+            }};
+        }
 
-                tries += 1;
+        match self {
+            Expression::Value(value) => *value,
+            Expression::Add(lhs, rhs) => eval_math_op!(lhs, rhs, add),
+            Expression::Sub(lhs, rhs) => eval_math_op!(lhs, rhs, sub),
+            Expression::Mul(lhs, rhs) => eval_math_op!(lhs, rhs, mul),
+            Expression::Div(lhs, rhs) => eval_math_op!(lhs, rhs, div),
+            Expression::Rem(lhs, rhs) => eval_math_op!(lhs, rhs, rem),
+            Expression::Neg(expr) => eval_math_op!(expr, neg),
+
+            _ => todo!(),
+        }
+    }
+}
+
+impl Writable for Expression {
+    fn write(&self, tx: &mut dyn Writer) {
+        match self {
+            Expression::Value(value) => {
+                tx.write(0u8);
+                tx.write(value);
+            }
+            Expression::Add(lhs, rhs) => {
+                tx.write(1u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Sub(lhs, rhs) => {
+                tx.write(2u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Mul(lhs, rhs) => {
+                tx.write(3u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Div(lhs, rhs) => {
+                tx.write(4u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Rem(lhs, rhs) => {
+                tx.write(5u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Neg(expr) => {
+                tx.write(6u8);
+                tx.write(&**expr);
+            }
+            Expression::Eq(lhs, rhs) => {
+                tx.write(7u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Neq(lhs, rhs) => {
+                tx.write(8u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Gt(lhs, rhs) => {
+                tx.write(9u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::GtEq(lhs, rhs) => {
+                tx.write(10u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Lt(lhs, rhs) => {
+                tx.write(11u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::LtEq(lhs, rhs) => {
+                tx.write(12u8);
+                tx.write(&**lhs);
+                tx.write(&**rhs);
+            }
+            Expression::Cast(expr, ty) => {
+                tx.write(13u8);
+                tx.write(&**expr);
+                tx.write(*ty);
             }
         }
     }
 }
 
-// ----
-
-#[derive(Clone, Copy, Debug)]
-enum Type {
-    I8,
-    U8,
-    I16,
-    U16,
-    I32,
-    U32,
-    I64,
-    U64,
-    I128,
-    U128,
-}
-
-impl Type {
-    fn all() -> impl Iterator<Item = Self> {
-        [
-            Self::I8,
-            Self::U8,
-            Self::I16,
-            Self::U16,
-            Self::I32,
-            Self::U32,
-            Self::I64,
-            Self::U64,
-            Self::I128,
-            Self::U128,
-        ]
-        .into_iter()
-    }
-
-    fn weight(self) -> u64 {
-        match self {
-            Self::I8 | Self::U8 | Self::I16 | Self::U16 => 1,
-            Self::I32 | Self::U32 => 2,
-            Self::I64 | Self::U64 => 4,
-            Self::I128 | Self::U128 => 8,
-        }
-    }
-
-    fn supports(self, op: Op) -> bool {
-        !matches!((self, op), (Self::I128 | Self::U128, Op::Div | Op::Rem))
-    }
-}
-
-impl Writable for Type {
-    fn write(&self, tx: &mut dyn Writer) {
-        tx.write(1 + *self as u8);
-    }
-}
-
-// ----
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Op {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Rem,
-}
-
-impl Op {
-    fn all() -> [Self; 5] {
-        [Self::Add, Self::Sub, Self::Mul, Self::Div, Self::Rem]
-    }
-
-    fn random(ty: Type) -> Self {
-        loop {
-            let op = Self::all().choose(&mut thread_rng()).cloned().unwrap();
-
-            if ty.supports(op) {
-                break op;
-            }
-        }
-    }
-
-    fn apply(self) -> fn(Value, Value) -> Option<Value> {
-        match self {
-            Self::Add => Value::checked_add,
-            Self::Sub => Value::checked_sub,
-            Self::Mul => Value::checked_mul,
-            Self::Div => Value::checked_div,
-            Self::Rem => Value::checked_rem,
-        }
-    }
-}
-
-// ----
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Token {
-    Op(Op),
-    Const,
-}
-
-impl Writable for Token {
-    fn write(&self, tx: &mut dyn Writer) {
-        tx.write(match self {
-            Token::Op(Op::Add) => 1,
-            Token::Op(Op::Sub) => 2,
-            Token::Op(Op::Mul) => 3,
-            Token::Op(Op::Div) => 4,
-            Token::Op(Op::Rem) => 5,
-            Token::Const => 255,
-        })
-    }
-}
-
-// ----
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Value {
+    Bool(bool),
     I8(i8),
     U8(u8),
     I16(i16),
@@ -263,57 +300,24 @@ enum Value {
     U64(u64),
     I128(i128),
     U128(u128),
+    F32(f32),
 }
 
-impl Value {
-    fn random(ty: Type) -> Self {
-        let mut rng = thread_rng();
-
-        match ty {
-            Type::I8 => Self::I8(rng.gen()),
-            Type::U8 => Self::U8(rng.gen()),
-            Type::I16 => Self::I16(rng.gen()),
-            Type::U16 => Self::U16(rng.gen()),
-            Type::I32 => Self::I32(rng.gen()),
-            Type::U32 => Self::U32(rng.gen()),
-            Type::I64 => Self::I64(rng.gen()),
-            Type::U64 => Self::U64(rng.gen()),
-            Type::I128 => Self::I128(rng.gen()),
-            Type::U128 => Self::U128(rng.gen()),
-        }
-    }
-
-    fn random_half(ty: Type) -> Self {
-        let mut this = Self::random(ty);
-
-        match &mut this {
-            Value::I8(val) => *val >>= 4,
-            Value::U8(val) => *val >>= 4,
-            Value::I16(val) => *val >>= 8,
-            Value::U16(val) => *val >>= 8,
-            Value::I32(val) => *val >>= 16,
-            Value::U32(val) => *val >>= 16,
-            Value::I64(val) => *val >>= 32,
-            Value::U64(val) => *val >>= 32,
-            Value::U128(val) => *val >>= 64,
-            Value::I128(val) => *val >>= 64,
-        }
-
-        this
-    }
-
-    fn read(ty: Type, uart: &mut Uart<'_>) -> Self {
-        match ty {
-            Type::I8 => Self::I8(i8::from_le_bytes(uart.read())),
-            Type::U8 => Self::U8(u8::from_le_bytes(uart.read())),
-            Type::I16 => Self::I16(i16::from_le_bytes(uart.read())),
-            Type::U16 => Self::U16(u16::from_le_bytes(uart.read())),
-            Type::I32 => Self::I32(i32::from_le_bytes(uart.read())),
-            Type::U32 => Self::U32(u32::from_le_bytes(uart.read())),
-            Type::I64 => Self::I64(i64::from_le_bytes(uart.read())),
-            Type::U64 => Self::U64(u64::from_le_bytes(uart.read())),
-            Type::I128 => Self::I128(i128::from_le_bytes(uart.read())),
-            Type::U128 => Self::U128(u128::from_le_bytes(uart.read())),
+impl Readable for Value {
+    fn read(rx: &mut dyn Reader) -> Self {
+        match rx.read() {
+            Type::Bool => Self::Bool(rx.read_byte() == 1),
+            Type::I8 => Self::I8(i8::from_le_bytes(rx.read())),
+            Type::U8 => Self::U8(u8::from_le_bytes(rx.read())),
+            Type::I16 => Self::I16(i16::from_le_bytes(rx.read())),
+            Type::U16 => Self::U16(u16::from_le_bytes(rx.read())),
+            Type::I32 => Self::I32(i32::from_le_bytes(rx.read())),
+            Type::U32 => Self::U32(u32::from_le_bytes(rx.read())),
+            Type::I64 => Self::I64(i64::from_le_bytes(rx.read())),
+            Type::U64 => Self::U64(u64::from_le_bytes(rx.read())),
+            Type::I128 => Self::I128(i128::from_le_bytes(rx.read())),
+            Type::U128 => Self::U128(u128::from_le_bytes(rx.read())),
+            Type::F32 => Self::F32(f32::from_le_bytes(rx.read())),
         }
     }
 }
@@ -321,125 +325,108 @@ impl Value {
 impl Writable for Value {
     fn write(&self, tx: &mut dyn Writer) {
         match *self {
-            Value::I8(value) => tx.write(value.to_le_bytes()),
-            Value::U8(value) => tx.write(value.to_le_bytes()),
-            Value::I16(value) => tx.write(value.to_le_bytes()),
-            Value::U16(value) => tx.write(value.to_le_bytes()),
-            Value::I32(value) => tx.write(value.to_le_bytes()),
-            Value::U32(value) => tx.write(value.to_le_bytes()),
-            Value::I64(value) => tx.write(value.to_le_bytes()),
-            Value::U64(value) => tx.write(value.to_le_bytes()),
-            Value::I128(value) => tx.write(value.to_le_bytes()),
-            Value::U128(value) => tx.write(value.to_le_bytes()),
-        }
-    }
-}
-
-macro_rules! impl_ops {
-    (
-        $value:ty,
-        $types:tt,
-        [ $( $fn:ident ),+ ]
-    ) => {
-        $(
-            impl_ops!(@expand $value, $types, $fn);
-        )+
-    };
-
-    (
-        @expand
-        $value:ty,
-        [ $( $ty:ident ),+ ],
-        $fn:ident
-    ) => {
-        impl $value {
-            fn $fn(self, rhs: Self) -> Option<Self> {
-                match (self, rhs) {
-                    $(
-                        (Self::$ty(lhs), Self::$ty(rhs)) => lhs.$fn(rhs).map(Self::$ty),
-                    )+
-                    _ => unreachable!(),
-                }
+            Value::Bool(value) => {
+                tx.write(Type::Bool);
+                tx.write(value as u8);
+            }
+            Value::I8(value) => {
+                tx.write(Type::I8);
+                tx.write(value.to_le_bytes());
+            }
+            Value::U8(value) => {
+                tx.write(Type::U8);
+                tx.write(value.to_le_bytes());
+            }
+            Value::I16(value) => {
+                tx.write(Type::I16);
+                tx.write(value.to_le_bytes());
+            }
+            Value::U16(value) => {
+                tx.write(Type::U16);
+                tx.write(value.to_le_bytes());
+            }
+            Value::I32(value) => {
+                tx.write(Type::I32);
+                tx.write(value.to_le_bytes());
+            }
+            Value::U32(value) => {
+                tx.write(Type::U32);
+                tx.write(value.to_le_bytes());
+            }
+            Value::I64(value) => {
+                tx.write(Type::I64);
+                tx.write(value.to_le_bytes());
+            }
+            Value::U64(value) => {
+                tx.write(Type::U64);
+                tx.write(value.to_le_bytes());
+            }
+            Value::I128(value) => {
+                tx.write(Type::I128);
+                tx.write(value.to_le_bytes());
+            }
+            Value::U128(value) => {
+                tx.write(Type::U128);
+                tx.write(value.to_le_bytes());
+            }
+            Value::F32(value) => {
+                tx.write(Type::F32);
+                tx.write(value.to_le_bytes());
             }
         }
-    };
+    }
 }
 
-impl_ops!(
-    Value,
-    [I8, U8, I16, U16, I32, U32, I64, U64, I128, U128],
-    [
-        checked_add,
-        checked_sub,
-        checked_mul,
-        checked_div,
-        checked_rem
-    ]
-);
-
-// ----
-
-#[derive(Clone, Debug)]
-enum Expression {
-    Add(Box<Self>, Box<Self>),
-    Sub(Box<Self>, Box<Self>),
-    Mul(Box<Self>, Box<Self>),
-    Div(Box<Self>, Box<Self>),
-    Rem(Box<Self>, Box<Self>),
-    Const(Value),
+#[derive(Clone, Copy, Debug)]
+enum Type {
+    Bool,
+    I8,
+    U8,
+    I16,
+    U16,
+    I32,
+    U32,
+    I64,
+    U64,
+    I128,
+    U128,
+    F32,
 }
 
-impl Expression {
-    fn from_op(op: Op) -> fn(Box<Self>, Box<Self>) -> Self {
-        match op {
-            Op::Add => Self::Add,
-            Op::Sub => Self::Sub,
-            Op::Mul => Self::Mul,
-            Op::Div => Self::Div,
-            Op::Rem => Self::Rem,
+impl Readable for Type {
+    fn read(rx: &mut dyn Reader) -> Self {
+        match rx.read_byte() {
+            0 => Self::Bool,
+            1 => Self::I8,
+            2 => Self::U8,
+            3 => Self::I16,
+            4 => Self::U16,
+            5 => Self::I32,
+            6 => Self::U32,
+            7 => Self::I64,
+            8 => Self::U64,
+            9 => Self::I128,
+            10 => Self::U128,
+            11 => Self::F32,
+            n => panic!("Unknown type: {n}"),
         }
     }
-
-    fn eval(&self) -> Option<Value> {
-        type OpFunction = fn(Value, Value) -> Option<Value>;
-
-        let (lhs, rhs, op): (_, _, OpFunction) = match self {
-            Self::Add(lhs, rhs) => (lhs, rhs, Value::checked_add),
-            Self::Sub(lhs, rhs) => (lhs, rhs, Value::checked_sub),
-            Self::Mul(lhs, rhs) => (lhs, rhs, Value::checked_mul),
-            Self::Div(lhs, rhs) => (lhs, rhs, Value::checked_div),
-            Self::Rem(lhs, rhs) => (lhs, rhs, Value::checked_rem),
-
-            Self::Const(value) => {
-                return Some(value.to_owned());
-            }
-        };
-
-        let lhs = lhs.eval()?;
-        let rhs = rhs.eval()?;
-
-        op(lhs, rhs)
-    }
 }
 
-impl Writable for Expression {
+impl Writable for Type {
     fn write(&self, tx: &mut dyn Writer) {
-        let (lhs, rhs, op) = match self {
-            Self::Add(lhs, rhs) => (lhs, rhs, Op::Add),
-            Self::Sub(lhs, rhs) => (lhs, rhs, Op::Sub),
-            Self::Mul(lhs, rhs) => (lhs, rhs, Op::Mul),
-            Self::Div(lhs, rhs) => (lhs, rhs, Op::Div),
-            Self::Rem(lhs, rhs) => (lhs, rhs, Op::Rem),
-
-            Self::Const(value) => {
-                tx.write(Token::Const);
-                tx.write(value);
-                return;
-            }
-        };
-
-        tx.write(Token::Op(op));
-        tx.write(&**lhs);
-        tx.write(&**rhs);
+        tx.write(*self as u8)
     }
+}
+
+fn make_i8(value: i8) -> Box<Expression> {
+    Box::new(Expression::Value(Value::I8(value)))
+}
+
+fn make_u8(value: u8) -> Box<Expression> {
+    Box::new(Expression::Value(Value::U8(value)))
+}
+
+fn make_i16(value: i16) -> Box<Expression> {
+    Box::new(Expression::Value(Value::I16(value)))
 }
