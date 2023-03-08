@@ -83,7 +83,7 @@ fn precise() {
 /// hand-written loops.
 #[test]
 fn precise_idiomatic() {
-    let mut avr = avr_with("pins-digital", |avr| avr.with_timeout_of_s(1));
+    let mut avr = avr_with("pins-digital", |avr| avr.with_timeout_of_s(2));
 
     // Give the firmware a moment to initialize
     avr.run_for_us(100);
@@ -101,6 +101,37 @@ fn precise_idiomatic() {
     assert_eq!(100, avr.pins().pd0().pulse_in().as_millis());
     assert_eq!(150, avr.pins().pd0().pulse_in().as_millis());
     assert_eq!(150, avr.pins().pd0().pulse_in().as_millis());
+
+    // Wait for a pin change or timeout:
+    let timeout = AvrDuration::millis(&avr, 50);
+    assert_eq!(
+        Err(50),
+        avr.pins()
+            .pd0()
+            .wait_while_high_timeout(timeout)
+            .map_err(|d| d.as_millis())
+    );
+    assert_eq!(
+        Ok(50),
+        avr.pins()
+            .pd0()
+            .wait_while_high_timeout(timeout)
+            .map(|d| d.as_millis())
+    );
+    assert_eq!(
+        Err(50),
+        avr.pins()
+            .pd0()
+            .wait_while_low_timeout(timeout)
+            .map_err(|d| d.as_millis())
+    );
+    assert_eq!(
+        Ok(50),
+        avr.pins()
+            .pd0()
+            .wait_while_low_timeout(timeout)
+            .map(|d| d.as_millis())
+    );
 }
 
 /// Similar to [`precise()`], but in this case we "accidentally" assert the

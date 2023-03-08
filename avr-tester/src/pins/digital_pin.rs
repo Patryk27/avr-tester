@@ -97,6 +97,32 @@ impl<'a> DigitalPin<'a> {
         tt
     }
 
+    /// Waits until pin becomes high or timeout is reached; if the pin is
+    /// already high, exits immediately.
+    ///
+    /// Returns a result containing the amount of time that has passed
+    /// for the device.
+    ///
+    /// If the timeout was reached before the pin state changed, the
+    /// duration will be contained in the `Err` variant, otherwise
+    /// the `Ok` variant contains the duration it took for the pin to
+    /// get high.
+    pub fn wait_while_low_timeout(
+        &mut self,
+        timeout: AvrDuration,
+    ) -> Result<AvrDuration, AvrDuration> {
+        let mut tt = AvrDuration::zero(self.avr);
+
+        while self.is_low() {
+            if tt >= timeout {
+                return Err(tt);
+            }
+            tt += self.avr.run();
+        }
+
+        Ok(tt)
+    }
+
     /// Waits until pin becomes low; if the pin is already low, exits
     /// immediately.
     ///
@@ -109,6 +135,32 @@ impl<'a> DigitalPin<'a> {
         }
 
         tt
+    }
+
+    /// Waits until pin becomes low or timeout is reached; if the pin is
+    /// already low, exits immediately.
+    ///
+    /// Returns a result containing the amount of time that has passed
+    /// for the device.
+    ///
+    /// If the timeout was reached before the pin state changed, the
+    /// duration will be contained in the `Err` variant, otherwise
+    /// the `Ok` variant contains the duration it took for the pin to
+    /// get low.
+    pub fn wait_while_high_timeout(
+        &mut self,
+        timeout: AvrDuration,
+    ) -> Result<AvrDuration, AvrDuration> {
+        let mut tt = AvrDuration::zero(self.avr);
+
+        while self.is_high() {
+            if tt >= timeout {
+                return Err(tt);
+            }
+            tt += self.avr.run();
+        }
+
+        Ok(tt)
     }
 
     /// Return pin's name, e.g. `PC6`.
