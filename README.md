@@ -42,7 +42,7 @@ fn avr() -> AvrTester {
         .load("../../yourproject/target/atmega328p/release/yourproject.elf")
 }
 
-// Assuming `yourproject` implements an ROT-13 encoder:
+// Assuming `yourproject` implements a ROT-13 encoder:
 
 #[test]
 fn short_text() {

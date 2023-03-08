@@ -3,7 +3,7 @@
 //! ```no_run
 //! use avr_tester::*;
 //!
-//! // Assuming `yourproject` implements an ROT-13 encoder:
+//! // Assuming `yourproject` implements a ROT-13 encoder:
 //!
 //! #[test]
 //! fn test() {
