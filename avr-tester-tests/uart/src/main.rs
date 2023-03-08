@@ -20,6 +20,10 @@ fn main() -> ! {
         115200u32.into_baudrate(),
     );
 
+    for c in "Ready!".bytes() {
+        uart.write_byte(c);
+    }
+
     loop {
         let c = uart.read_byte();
         let c = rot13(c);

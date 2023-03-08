@@ -194,28 +194,28 @@ impl AvrTester {
 
     /// Returns an object providing access to SPI0 (i.e. the default SPI).
     ///
-    /// Note that if your AVR doesn't support SPI, operating on it will panic.
+    /// Note that if your AVR doesn't have SPI, operating on it will panic.
     pub fn spi0(&mut self) -> Spi<'_> {
         Spi::new(self.sim(), 0)
     }
 
     /// Returns an object providing access to SPI1.
     ///
-    /// Note that if your AVR doesn't support SPI, operating on it will panic.
+    /// Note that if your AVR doesn't have SPI, operating on it will panic.
     pub fn spi1(&mut self) -> Spi<'_> {
         Spi::new(self.sim(), 1)
     }
 
     /// Returns an object providing access to UART0 (i.e. the default UART).
     ///
-    /// Note that if your AVR doesn't support UART0, operating on it will panic.
+    /// Note that if your AVR doesn't have UART0, operating on it will panic.
     pub fn uart0(&mut self) -> Uart<'_> {
         Uart::new(self.sim(), '0')
     }
 
     /// Returns an object providing access to UART1.
     ///
-    /// Note that if your AVR doesn't support UART1, operating on it will panic.
+    /// Note that if your AVR doesn't have UART1, operating on it will panic.
     pub fn uart1(&mut self) -> Uart<'_> {
         Uart::new(self.sim(), '1')
     }

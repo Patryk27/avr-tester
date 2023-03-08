@@ -15,6 +15,8 @@ fn test() {
 
     avr.run_for_ms(1);
 
+    assert_eq!("Ready!", avr.spi0().read::<String>());
+
     let mut assert = |given: &str, expected: &str| {
         avr.spi0().write(given);
         avr.run_for_ms(50);

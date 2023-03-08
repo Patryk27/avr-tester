@@ -19,10 +19,7 @@ mod state;
 mod uart;
 
 use self::{adc::*, avr::*, firmware::*, ioctl::*, port::*, spi::*, uart::*};
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    path::Path,
-};
+use std::{collections::HashMap, path::Path};
 
 pub use self::{duration::*, state::*};
 pub use simavr_ffi as ffi;
@@ -47,11 +44,55 @@ impl AvrSimulator {
 
         Firmware::new().load_elf(firmware).flash_to(&mut avr);
 
+        // Initialize SPIs.
+        //
+        // Note that we have to do that eagerly instead of on-demand, because
+        // we have to register for the input IRQ notifications as soon as
+        // possible as not to miss any bytes.
+        let spis = {
+            let mut spis = HashMap::new();
+
+            for spi_id in 0..8 {
+                // Safety: `avr` lives as long as `spi`
+                let spi = unsafe { Spi::new(spi_id, &mut avr) };
+
+                if let Some(spi) = spi {
+                    spis.insert(spi_id, spi);
+                } else {
+                    break;
+                }
+            }
+
+            spis
+        };
+
+        // Initialize UARTs.
+        //
+        // As with SPIs, we have to do that eagerly a
+        let uarts = {
+            let mut uarts = HashMap::new();
+
+            for uart_id in 0..8 {
+                let uart_id = (('0' as u8) + uart_id) as char;
+
+                // Safety: `avr` lives as long as `uart`
+                let uart = unsafe { Uart::new(uart_id, &mut avr) };
+
+                if let Some(uart) = uart {
+                    uarts.insert(uart_id, uart);
+                } else {
+                    break;
+                }
+            }
+
+            uarts
+        };
+
         Self {
             avr,
             adc,
-            spis: Default::default(),
-            uarts: Default::default(),
+            spis,
+            uarts,
         }
     }
 
@@ -109,33 +150,15 @@ impl AvrSimulator {
     }
 
     fn spi(&mut self, id: u8) -> &mut Spi {
-        if let Entry::Vacant(entry) = self.spis.entry(id) {
-            // Safety: `self.avr` lives as long as `spi`
-            let spi = unsafe { Spi::new(id, &mut self.avr) };
-
-            if let Some(spi) = spi {
-                entry.insert(spi);
-            }
-        }
-
         self.spis
             .get_mut(&id)
             .unwrap_or_else(|| panic!("Current AVR doesn't have SPI{}", id))
     }
 
     fn uart(&mut self, id: char) -> &mut Uart {
-        if let Entry::Vacant(entry) = self.uarts.entry(id) {
-            // Safety: `self.avr` lives as long as `uart`
-            let uart = unsafe { Uart::new(id, &mut self.avr) };
-
-            if let Some(uart) = uart {
-                entry.insert(uart);
-            }
-        }
-
         self.uarts
             .get_mut(&id)
-            .unwrap_or_else(|| panic!("Current AVR doesn't support UART{}", id))
+            .unwrap_or_else(|| panic!("Current AVR doesn't have UART{}", id))
     }
 }
 

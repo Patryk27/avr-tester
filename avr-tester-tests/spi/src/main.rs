@@ -24,6 +24,10 @@ fn main() -> ! {
         spi::Settings::default(),
     );
 
+    for c in "Ready!".bytes() {
+        nb::block!(spi.send(c)).void_unwrap();
+    }
+
     loop {
         let c = nb::block!(spi.read()).void_unwrap();
 
