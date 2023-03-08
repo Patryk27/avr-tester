@@ -39,7 +39,7 @@ dependencies = [
 
 [[package]]
 name = "avr-simulator"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "libc",
  "simavr-ffi",
@@ -48,7 +48,7 @@ dependencies = [
 
 [[package]]
 name = "avr-tester"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "avr-simulator",
  "rand",
