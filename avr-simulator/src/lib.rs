@@ -73,6 +73,7 @@ impl AvrSimulator {
             let mut uarts = HashMap::new();
 
             for uart_id in 0..8 {
+                #[allow(clippy::char_lit_as_u8)]
                 let uart_id = (('0' as u8) + uart_id) as char;
 
                 // Safety: `avr` lives as long as `uart`
