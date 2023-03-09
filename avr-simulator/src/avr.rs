@@ -19,8 +19,8 @@ impl Avr {
 
         let mut this = Self { inner };
 
-        // Safety: `inner` points to a valid `avr_t`; we've just received from
-        // simavr, after all!
+        // Safety: `inner` points to a valid `avr_t` which we've just received
+        // from simavr
         let status = unsafe { ffi::avr_init(this.inner.as_ptr()) };
 
         if status != 0 {
