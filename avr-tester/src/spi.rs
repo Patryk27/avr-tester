@@ -87,7 +87,7 @@ impl<'a> Spi<'a> {
     /// // Strings are transmitted as a series of their bytes, so the above is
     /// // equivalent to:
     /// avr.spi0().write([72, 101, 108, 108, 111, 33]);
-    /// //                 H   e    l    l    o    !
+    /// //                H   e    l    l    o    !
     /// ```
     pub fn write<T>(&mut self, value: T)
     where

@@ -1,6 +1,6 @@
 use crate::*;
 
-/// Manages a single digital pin (e.g. `PD4`).
+/// Provides access to a digital pin, e.g. `PD4`.
 pub struct DigitalPin<'a> {
     avr: &'a mut AvrTester,
     port: char,

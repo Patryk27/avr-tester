@@ -126,7 +126,7 @@ pub(crate) use self::{component_runtime::*, futures::*};
 ///
 /// ## `PB2 = !PB1`
 ///
-/// This component implements a simple `PB2 = !PB1` real-time gate:
+/// This component implements a simple `PB2 = !PB1` gate:
 ///
 /// ```no_run
 /// # use avr_tester::*;

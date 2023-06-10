@@ -1,6 +1,6 @@
 use crate::*;
 
-/// Provides access to a single analog pin, e.g. `ADC1`.
+/// Provides access to an analog pin, e.g. `ADC1`.
 pub struct AnalogPin<'a> {
     avr: &'a mut AvrTester,
     pin: u32,
