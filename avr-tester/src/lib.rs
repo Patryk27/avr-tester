@@ -306,6 +306,34 @@ impl AvrTesterAsync {
     pub fn pins(&self) -> PinsAsync {
         PinsAsync::new()
     }
+
+    /// Asynchronous equivalent of [`AvrTester::spi0()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub fn spi0(&self) -> SpiAsync {
+        SpiAsync::new(0)
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::spi1()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub fn spi1(&self) -> SpiAsync {
+        SpiAsync::new(1)
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::uart0()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub fn uart0(&mut self) -> UartAsync {
+        UartAsync::new('0')
+    }
+
+    /// Asynchronous equivalent of [`AvrTester::uart1()`].
+    ///
+    /// See [`avr_rt()`] for more details.
+    pub fn uart1(&mut self) -> UartAsync {
+        UartAsync::new('1')
+    }
 }
 
 /// Returns [`AvrTesterAsync`] for usage inside **components**.

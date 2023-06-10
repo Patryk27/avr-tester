@@ -49,20 +49,6 @@ impl<'a> Uart<'a> {
         T::read(self)
     }
 
-    /// Retrieves a single byte from AVR.
-    ///
-    /// As compared to [`Self::read()`], when the buffer is empty, this function
-    /// returns `None` instead of panicking.
-    ///
-    /// When this function returns `None`, it will continue to return `None` at
-    /// least up until the next call to [`AvrTester::run()`], since that's when
-    /// AvrTester "pulls" bytes from the simulated AVR.
-    ///
-    /// See also: [`Self::read()`].
-    pub fn try_read_byte(&mut self) -> Option<u8> {
-        self.sim.read_uart(self.id)
-    }
-
     /// Transmits a value to AVR.
     ///
     /// See: [`Writable`].
@@ -114,5 +100,42 @@ impl Reader for Uart<'_> {
 impl Writer for Uart<'_> {
     fn write_byte(&mut self, value: u8) {
         self.sim.write_uart(self.id, value);
+    }
+}
+
+/// Asynchronous equivalent of [`Uart`].
+///
+/// See [`avr_rt()`] for more details.
+pub struct UartAsync {
+    id: char,
+}
+
+impl UartAsync {
+    pub(crate) fn new(id: char) -> Self {
+        Self { id }
+    }
+
+    /// Asynchronous equivalent of [`Uart::read()`].
+    pub fn read<T>(&self) -> T
+    where
+        T: Readable,
+    {
+        self.with(|uart| uart.read())
+    }
+
+    /// Asynchronous equivalent of [`Uart::write()`].
+    pub fn write<T>(&mut self, value: T)
+    where
+        T: Writable,
+    {
+        self.with(|uart| uart.write(value))
+    }
+
+    fn with<T>(&self, f: impl FnOnce(&mut Uart) -> T) -> T {
+        ComponentRuntime::with(|rt| {
+            let mut uart = Uart::new(rt.sim(), self.id);
+
+            f(&mut uart)
+        })
     }
 }

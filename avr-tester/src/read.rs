@@ -2,7 +2,10 @@ use std::{array, iter};
 
 /// Object that can be read from, e.g. [`crate::Uart`].
 pub trait Reader {
+    /// Reads a byte from the AVR; when the buffer is empty, panics.
     fn read_byte(&mut self) -> u8;
+
+    /// Reads a byte from the AVR; when the buffer is empty, returns `None`.
     fn try_read_byte(&mut self) -> Option<u8>;
 }
 

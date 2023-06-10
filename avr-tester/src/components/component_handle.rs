@@ -6,7 +6,7 @@ pub struct ComponentHandle {
 }
 
 impl ComponentHandle {
-    pub(super) fn new(state: Rc<RefCell<ComponentState>>) -> Self {
+    pub(crate) fn new(state: Rc<RefCell<ComponentState>>) -> Self {
         Self { state }
     }
 

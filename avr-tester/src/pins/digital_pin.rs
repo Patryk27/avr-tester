@@ -8,7 +8,7 @@ pub struct DigitalPin<'a> {
 }
 
 impl<'a> DigitalPin<'a> {
-    pub(super) fn new(avr: &'a mut AvrTester, port: char, pin: u8) -> Self {
+    pub(crate) fn new(avr: &'a mut AvrTester, port: char, pin: u8) -> Self {
         Self { avr, port, pin }
     }
 
@@ -178,7 +178,7 @@ pub struct DigitalPinAsync {
 }
 
 impl DigitalPinAsync {
-    pub(super) fn new(port: char, pin: u8) -> Self {
+    pub(crate) fn new(port: char, pin: u8) -> Self {
         Self { port, pin }
     }
 
@@ -200,7 +200,7 @@ impl DigitalPinAsync {
     }
 
     /// Asynchronous equivalent of [`DigitalPin::toggle()`].
-    pub fn toggle(&mut self) {
+    pub fn toggle(&self) {
         if self.is_low() {
             self.set_high();
         } else {
@@ -209,29 +209,29 @@ impl DigitalPinAsync {
     }
 
     /// Asynchronous equivalent of [`DigitalPin::is_low()`].
-    pub fn is_low(&mut self) -> bool {
+    pub fn is_low(&self) -> bool {
         !self.is_high()
     }
 
     /// Asynchronous equivalent of [`DigitalPin::is_high()`].
-    pub fn is_high(&mut self) -> bool {
+    pub fn is_high(&self) -> bool {
         ComponentRuntime::with(|rt| rt.sim().get_digital_pin(self.port, self.pin))
     }
 
     /// Asynchronous equivalent of [`DigitalPin::assert_low()`].
     #[track_caller]
-    pub fn assert_low(&mut self) {
+    pub fn assert_low(&self) {
         assert!(self.is_low(), "{} is not low", self.name());
     }
 
     /// Asynchronous equivalent of [`DigitalPin::assert_high()`].
     #[track_caller]
-    pub fn assert_high(&mut self) {
+    pub fn assert_high(&self) {
         assert!(self.is_high(), "{} is not high", self.name());
     }
 
     /// Asynchronous equivalent of [`DigitalPin::pulse_in()`].
-    pub async fn pulse_in(&mut self) -> AvrDuration {
+    pub async fn pulse_in(&self) -> AvrDuration {
         let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
         let state = self.is_high();
 
@@ -243,7 +243,7 @@ impl DigitalPinAsync {
     }
 
     /// Asynchronous equivalent of [`DigitalPin::wait_while_low()`].
-    pub async fn wait_while_low(&mut self) -> AvrDuration {
+    pub async fn wait_while_low(&self) -> AvrDuration {
         let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
 
         while self.is_low() {
@@ -254,7 +254,7 @@ impl DigitalPinAsync {
     }
 
     /// Asynchronous equivalent of [`DigitalPin::wait_while_high()`].
-    pub async fn wait_while_high(&mut self) -> AvrDuration {
+    pub async fn wait_while_high(&self) -> AvrDuration {
         let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
 
         while self.is_high() {

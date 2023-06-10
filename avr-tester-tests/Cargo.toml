@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "components-shift-register",
+    "components-spi",
     "pins-analog",
     "pins-digital",
     "spi",

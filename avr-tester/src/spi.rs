@@ -49,20 +49,6 @@ impl<'a> Spi<'a> {
         T::read(self)
     }
 
-    /// Retrieves a single byte from AVR.
-    ///
-    /// As compared to [`Self::read()`], when the buffer is empty, this function
-    /// returns `None` instead of panicking.
-    ///
-    /// When this function returns `None`, it will continue to return `None` at
-    /// least up until the next call to [`AvrTester::run()`], since that's when
-    /// AvrTester "pulls" bytes from the simulated AVR.
-    ///
-    /// See also: [`Self::read()`].
-    pub fn try_read_byte(&mut self) -> Option<u8> {
-        self.sim.read_spi(self.id)
-    }
-
     /// Transmits a value to AVR.
     ///
     /// See: [`Writable`].
@@ -114,5 +100,58 @@ impl Reader for Spi<'_> {
 impl Writer for Spi<'_> {
     fn write_byte(&mut self, value: u8) {
         self.sim.write_spi(self.id, value);
+    }
+}
+
+/// Asynchronous equivalent of [`Spi`].
+///
+/// See [`avr_rt()`] for more details.
+pub struct SpiAsync {
+    id: u8,
+}
+
+impl SpiAsync {
+    pub(crate) fn new(id: u8) -> Self {
+        Self { id }
+    }
+
+    /// Asynchronous equivalent of [`Spi::read()`].
+    pub fn read<T>(&self) -> T
+    where
+        T: Readable,
+    {
+        self.with(|spi| spi.read())
+    }
+
+    /// Asynchronous equivalent of [`Spi::write()`].
+    pub fn write<T>(&mut self, value: T)
+    where
+        T: Writable,
+    {
+        self.with(|spi| spi.write(value))
+    }
+
+    fn with<T>(&self, f: impl FnOnce(&mut Spi) -> T) -> T {
+        ComponentRuntime::with(|rt| {
+            let mut spi = Spi::new(rt.sim(), self.id);
+
+            f(&mut spi)
+        })
+    }
+}
+
+impl Reader for SpiAsync {
+    fn read_byte(&mut self) -> u8 {
+        self.with(|spi| spi.read_byte())
+    }
+
+    fn try_read_byte(&mut self) -> Option<u8> {
+        self.with(|spi| spi.try_read_byte())
+    }
+}
+
+impl Writer for SpiAsync {
+    fn write_byte(&mut self, value: u8) {
+        self.with(|spi| spi.write_byte(value))
     }
 }

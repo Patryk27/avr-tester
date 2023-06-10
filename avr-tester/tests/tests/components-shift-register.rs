@@ -1,5 +1,5 @@
-//! This test shows AvrTester's feature called _components_ - please refer
-//! to [`Components`] for more context.
+//! This test shows AvrTester's feature called components - please refer to
+//! [`Components`] for more context.
 //!
 //! # Scenario
 //!

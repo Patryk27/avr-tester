@@ -3,6 +3,9 @@
 #[path = "tests/components-shift-register.rs"]
 mod components_shift_register;
 
+#[path = "tests/components-spi.rs"]
+mod components_spi;
+
 #[path = "tests/pins-analog.rs"]
 mod pins_analog;
 

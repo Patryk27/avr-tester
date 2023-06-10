@@ -7,7 +7,7 @@ pub struct AnalogPin<'a> {
 }
 
 impl<'a> AnalogPin<'a> {
-    pub(super) fn new(avr: &'a mut AvrTester, pin: u32) -> Self {
+    pub(crate) fn new(avr: &'a mut AvrTester, pin: u32) -> Self {
         Self { avr, pin }
     }
 
@@ -25,7 +25,7 @@ pub struct AnalogPinAsync {
 }
 
 impl AnalogPinAsync {
-    pub(super) fn new(pin: u32) -> Self {
+    pub(crate) fn new(pin: u32) -> Self {
         Self { pin }
     }
 
