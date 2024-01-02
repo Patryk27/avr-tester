@@ -150,5 +150,5 @@ $ sudo apt install avr-libc gcc-avr
 
 ## License
 
-Copyright (c) 2022-2023, Patryk Wychowaniec <pwychowaniec@pm.me>.    
+Copyright (c) 2022 Patryk Wychowaniec <pwychowaniec@pm.me>.    
 Licensed under the MIT license.
