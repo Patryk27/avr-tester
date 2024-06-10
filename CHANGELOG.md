@@ -1,3 +1,7 @@
+# 0.2.3
+
+- Bumped [simavr-ffi](https://github.com/Patryk27/simavr-ffi/pull/4).
+
 # 0.2.2
 
 - Added support for asynchronous SPI and UART, for usage in components.
