@@ -22,7 +22,7 @@ impl ComponentRuntime {
         RUNTIME.with(|rt| {
             rt.borrow_mut()
                 .take()
-                .expect("destroy() called outside of AvrTester's runtime")
+                .expect("destroy() called outside AvrTester's runtime")
                 .sim
         })
     }
@@ -33,7 +33,7 @@ impl ComponentRuntime {
 
             let rt = rt
                 .as_mut()
-                .expect("with() called outside of AvrTester's runtime");
+                .expect("with() called outside AvrTester's runtime");
 
             f(rt)
         })
