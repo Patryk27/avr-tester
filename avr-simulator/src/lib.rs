@@ -68,7 +68,7 @@ impl AvrSimulator {
 
         // Initialize UARTs.
         //
-        // As with SPIs, we have to do that eagerly a
+        // As with SPIs, we have to do that eagerly.
         let uarts = {
             let mut uarts = HashMap::new();
 
