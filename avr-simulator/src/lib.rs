@@ -40,7 +40,7 @@ impl AvrSimulator {
         let mut avr = Avr::new(mcu, frequency);
 
         // Safety: `avr` lives as long as `adc`
-        let adc = unsafe { Adc::new(&mut avr) };
+        let adc = unsafe { Adc::new(&avr) };
 
         Firmware::new().load_elf(firmware).flash_to(&mut avr);
 
@@ -54,7 +54,7 @@ impl AvrSimulator {
 
             for spi_id in 0..8 {
                 // Safety: `avr` lives as long as `spi`
-                let spi = unsafe { Spi::new(spi_id, &mut avr) };
+                let spi = unsafe { Spi::new(spi_id, &avr) };
 
                 if let Some(spi) = spi {
                     spis.insert(spi_id, spi);
@@ -140,7 +140,7 @@ impl AvrSimulator {
     }
 
     pub fn set_digital_pin(&mut self, port: char, pin: u8, high: bool) {
-        Port::set_pin(&mut self.avr, port, pin, high);
+        Port::set_pin(&self.avr, port, pin, high);
     }
 
     pub fn set_analog_pin(&mut self, pin: u8, voltage: u32) {

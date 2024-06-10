@@ -18,7 +18,7 @@ impl Adc {
     ///
     /// - Because this function registers an IRQ notification, the object
     ///   returned from here must be kept alive for at least as long as `avr`.
-    pub unsafe fn new(avr: &mut Avr) -> Option<Self> {
+    pub unsafe fn new(avr: &Avr) -> Option<Self> {
         let irq = avr.try_io_getirq(IoCtl::AdcGetIrq, ffi::ADC_IRQ_OUT_TRIGGER)?;
 
         let this = Self {

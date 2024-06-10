@@ -18,7 +18,7 @@ impl Spi {
     ///
     /// - Because this function registers an IRQ notification, the object
     ///   returned from here must be kept alive for at least as long as `avr`.
-    pub unsafe fn new(id: u8, avr: &mut Avr) -> Option<Self> {
+    pub unsafe fn new(id: u8, avr: &Avr) -> Option<Self> {
         let ioctl = IoCtl::SpiGetIrq { spi: id };
         let irq_input = avr.try_io_getirq(ioctl, ffi::SPI_IRQ_INPUT)?;
         let irq_output = avr.try_io_getirq(ioctl, ffi::SPI_IRQ_OUTPUT)?;

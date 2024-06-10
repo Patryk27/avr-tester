@@ -36,7 +36,7 @@ impl Uart {
         //
         // Now let's detach it from the standard output so that simavr doesn't
         // try to write there (this is especially important if someone's trying
-        // to send binary data through this UART, which otherwise would've\
+        // to send binary data through this UART, which otherwise would've
         // gotten emitted into stdout as well).
         flags &= !ffi::AVR_UART_FLAG_STDIO;
 
@@ -87,24 +87,20 @@ impl Uart {
 
     pub fn flush(&mut self) {
         loop {
-            // Safety: We're releasing the borrow before calling `.raise_irq()`
-            let state = unsafe { self.borrow_mut() };
+            let byte = {
+                // Safety: We're releasing the borrow before calling `.raise_irq()`
+                let state = unsafe { self.borrow_mut() };
 
-            if !state.xon {
-                break;
-            }
+                if !state.xon {
+                    break;
+                }
 
-            let byte = state.tx.pop_front();
-
-            let byte = if let Some(byte) = byte {
-                byte
-            } else {
-                break;
+                if let Some(byte) = state.tx.pop_front() {
+                    byte
+                } else {
+                    break;
+                }
             };
-
-            // (part of the safety requirement from above)
-            #[allow(clippy::drop_ref)]
-            drop(state);
 
             unsafe {
                 ffi::avr_raise_irq(self.irq_input.as_ptr(), byte as u32);
@@ -145,7 +141,7 @@ impl Drop for Uart {
     fn drop(&mut self) {
         // Safety: This pointer was obtained by creating a box and leaking it,
         // so it's safe to transform it back into the box; also, we're inside a
-        // constructor, so it's guaranteed that this function will be called at
+        // destructor, so it's guaranteed that this function will be called at
         // most once.
         unsafe {
             drop(Box::from_raw(self.state.as_ptr()));

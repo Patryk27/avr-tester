@@ -4,7 +4,7 @@ use super::*;
 pub struct Port;
 
 impl Port {
-    pub fn set_pin(avr: &mut Avr, port: char, pin: u8, high: bool) {
+    pub fn set_pin(avr: &Avr, port: char, pin: u8, high: bool) {
         let irq = avr
             .try_io_getirq(IoCtl::IoPortGetIrq { port }, pin as u32)
             .unwrap_or_else(|| panic!("Current AVR doesn't have pin P{}{}", port, pin));
