@@ -23,6 +23,7 @@ pkgs.mkShell {
     libelf
     pkg-config
     zlib
+    zstd
 
     pkgsCross.avr.buildPackages.gcc11
   ];
