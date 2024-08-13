@@ -373,9 +373,9 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "simavr-ffi"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "883987e7a162f90bf254e4b3bf73948bbe2eb339d60f3ad75ae20d0cc103ada6"
+checksum = "2db9e26428a363b7038545c85a3b46ee9c675c6f3c82f2d109c9afdb948eb45c"
 dependencies = [
  "anyhow",
  "bindgen",
