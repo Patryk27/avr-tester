@@ -5,3 +5,10 @@ members = [
     "avr-simulator",
     "avr-tester",
 ]
+
+exclude = [
+    "avr-tester-fixtures",
+]
+
+# [patch."crates-io"]
+# simavr-ffi = { path = "../simavr-ffi" }

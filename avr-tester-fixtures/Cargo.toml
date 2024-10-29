@@ -1,0 +1,55 @@
+[package]
+name = "avr-tester-fixtures"
+edition = "2021"
+
+[[bin]]
+name = "acc-bits"
+path = "src/acc_bits.rs"
+
+[[bin]]
+name = "acc-eval"
+path = "src/acc_eval.rs"
+
+[[bin]]
+name = "analog-pins"
+path = "src/analog_pins.rs"
+
+[[bin]]
+name = "digital-pins"
+path = "src/digital_pins.rs"
+
+[[bin]]
+name = "shift-register"
+path = "src/shift_register.rs"
+
+[[bin]]
+name = "spi"
+path = "src/spi.rs"
+
+[[bin]]
+name = "spi-component"
+path = "src/spi_component.rs"
+
+[[bin]]
+name = "timeout"
+path = "src/timeout.rs"
+
+[[bin]]
+name = "twi"
+path = "src/twi.rs"
+
+[[bin]]
+name = "uart"
+path = "src/uart.rs"
+
+[dependencies]
+atmega-hal = { git = "https://github.com/Rahix/avr-hal", features = ["atmega328p", "rt"] }
+avr-hal-generic = { git = "https://github.com/Rahix/avr-hal" }
+embedded-hal = "0.2.3"
+panic-halt = "0.2"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = "s"
+panic = "abort"
