@@ -26,7 +26,7 @@ $ cargo new firmware-tests --lib
 # firmware-tests/Cargo.toml
 
 [dependencies]
-avr-tester = "0.2"
+avr-tester = "0.3"
 ```
 
 ... and start writing tests:
