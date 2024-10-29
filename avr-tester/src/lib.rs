@@ -36,13 +36,10 @@ mod duration_ext;
 mod pins;
 mod read;
 mod spi;
+mod twi;
 mod uart;
 mod utils;
 mod write;
-
-use avr_simulator::{AvrSimulator, AvrState};
-use std::marker::PhantomData;
-use std::path::Path;
 
 pub use self::builder::*;
 pub use self::components::*;
@@ -50,19 +47,27 @@ pub use self::duration_ext::*;
 pub use self::pins::*;
 pub use self::read::*;
 pub use self::spi::*;
+pub use self::twi::*;
 pub use self::uart::*;
 pub use self::utils::*;
 pub use self::write::*;
-pub use avr_simulator::AvrDuration;
+pub use avr_simulator::{AvrDuration, TwiPacket, TwiSlave};
+use avr_simulator::{AvrSimulator, AvrState};
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::marker::PhantomData;
+use std::path::Path;
+use std::rc::Rc;
 
-/// Simulator's entry point; you can build it using [`AvrTester::atmega328p()`]
-/// or a similar function.
-#[derive(Debug)]
+type TwiId = u8;
+
+/// The Tester; use [`AvrTester::atmega328p()`] etc. to construct it.
 pub struct AvrTester {
     sim: Option<AvrSimulator>,
     clock_frequency: u32,
     remaining_clock_cycles: Option<u64>,
     components: Components,
+    twis: BTreeMap<TwiId, Rc<RefCell<TwiManager>>>,
 }
 
 impl AvrTester {
@@ -77,6 +82,7 @@ impl AvrTester {
             clock_frequency,
             remaining_clock_cycles,
             components: Components::new(),
+            twis: Default::default(),
         }
     }
 
@@ -206,7 +212,7 @@ impl AvrTester {
 
     /// Returns an object providing access to SPI0 (i.e. the default one).
     ///
-    /// Note that if your AVR doesn't have SPI, operating on it will panic.
+    /// Note that if your AVR doesn't have SPI0, operating on it will panic.
     #[doc(alias = "spi")]
     pub fn spi0(&mut self) -> Spi {
         Spi::new(self.sim(), 0)
@@ -214,9 +220,25 @@ impl AvrTester {
 
     /// Returns an object providing access to SPI1.
     ///
-    /// Note that if your AVR doesn't have SPI, operating on it will panic.
+    /// Note that if your AVR doesn't have SPI1, operating on it will panic.
     pub fn spi1(&mut self) -> Spi {
         Spi::new(self.sim(), 1)
+    }
+
+    /// Returns an object providing access to TWI0 (i.e. the default one), also
+    /// known as I2C.
+    ///
+    /// Note that if your AVR doesn't have TWI0, operating on it will panic.
+    #[doc(alias = "i2c")]
+    pub fn twi0(&mut self) -> Twi {
+        Twi::new(self, 0)
+    }
+
+    /// Returns an object providing access to TWI1.
+    ///
+    /// Note that if your AVR doesn't have TWI1, operating on it will panic.
+    pub fn twi1(&mut self) -> Twi {
+        Twi::new(self, 1)
     }
 
     /// Returns an object providing access to UART0 (i.e. the default one).

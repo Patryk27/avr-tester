@@ -14,6 +14,7 @@ mod logging;
 mod port;
 mod spi;
 mod state;
+mod twi;
 mod uart;
 
 use self::adc::*;
@@ -24,6 +25,8 @@ use self::ioctl::*;
 use self::port::*;
 use self::spi::*;
 pub use self::state::*;
+use self::twi::*;
+pub use self::twi::{TwiPacket, TwiSlave};
 use self::uart::*;
 pub use simavr_ffi as ffi;
 use std::collections::HashMap;
@@ -34,6 +37,7 @@ pub struct AvrSimulator {
     avr: Avr,
     adc: Option<Adc>,
     spis: HashMap<u8, Spi>,
+    twis: HashMap<u8, Twi>,
     uarts: HashMap<char, Uart>,
 }
 
@@ -48,12 +52,14 @@ impl AvrSimulator {
         // Safety: `avr` lives as long as `adc`, `spis` etc.
         let adc = unsafe { Adc::new(&avr) };
         let spis = unsafe { Self::init_spis(&avr) };
+        let twis = unsafe { Self::init_twis(&avr) };
         let uarts = unsafe { Self::init_uarts(&mut avr) };
 
         Self {
             avr,
             adc,
             spis,
+            twis,
             uarts,
         }
     }
@@ -72,12 +78,25 @@ impl AvrSimulator {
         spis
     }
 
+    unsafe fn init_twis(avr: &Avr) -> HashMap<u8, Twi> {
+        let mut twis = HashMap::new();
+
+        for id in 0..8 {
+            if let Some(twi) = Twi::new(id, avr) {
+                twis.insert(id, twi);
+            } else {
+                break;
+            }
+        }
+
+        twis
+    }
+
     unsafe fn init_uarts(avr: &mut Avr) -> HashMap<char, Uart> {
         let mut uarts = HashMap::new();
 
         for id in 0..8 {
-            #[allow(clippy::char_lit_as_u8)]
-            let id = (('0' as u8) + id) as char;
+            let id = (b'0' + id) as char;
 
             if let Some(uart) = Uart::new(id, avr) {
                 uarts.insert(id, uart);
@@ -118,6 +137,10 @@ impl AvrSimulator {
         self.spi(id).write(byte)
     }
 
+    pub fn set_twi_slave(&mut self, id: u8, slave: impl TwiSlave + 'static) {
+        self.twi(id).set_slave(slave);
+    }
+
     pub fn read_uart(&mut self, id: char) -> Option<u8> {
         self.uart(id).read()
     }
@@ -145,6 +168,12 @@ impl AvrSimulator {
         self.spis
             .get_mut(&id)
             .unwrap_or_else(|| panic!("Current AVR doesn't have SPI{}", id))
+    }
+
+    fn twi(&mut self, id: u8) -> &mut Twi {
+        self.twis
+            .get_mut(&id)
+            .unwrap_or_else(|| panic!("Current AVR doesn't have TWI{}", id))
     }
 
     fn uart(&mut self, id: char) -> &mut Uart {

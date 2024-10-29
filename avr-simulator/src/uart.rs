@@ -26,7 +26,7 @@ impl Uart {
         // fail there.)
         //
         // Safety: `IoCtl::UartGetFlags` requires a parameter of type `u32`
-        let status = avr.ioctl(IoCtl::UartGetFlags { uart: id }, &mut flags);
+        let status = avr.ioctl(IoCtl::UartGetFlags { id }, &mut flags);
 
         if status != 0 {
             return None;
@@ -41,13 +41,13 @@ impl Uart {
         flags &= !ffi::AVR_UART_FLAG_STDIO;
 
         // Safety: `IoCtl::UartSetFlags` requires a parameter of type `u32`
-        avr.ioctl(IoCtl::UartSetFlags { uart: id }, &mut flags);
+        avr.ioctl(IoCtl::UartSetFlags { id }, &mut flags);
 
         // ----
         // Now let's finalize everything by attaching to simavr's IRQs so that
         // we can get notified when AVR sends something through this UART.
 
-        let ioctl = IoCtl::UartGetIrq { uart: id };
+        let ioctl = IoCtl::UartGetIrq { id };
         let state = NonNull::from(Box::leak(Default::default()));
 
         // Safety: All of callbacks match the expected IRQs
@@ -70,7 +70,7 @@ impl Uart {
         );
 
         let irq_input =
-            avr.io_getirq(IoCtl::UartGetIrq { uart: id }, ffi::UART_IRQ_INPUT);
+            avr.io_getirq(IoCtl::UartGetIrq { id }, ffi::UART_IRQ_INPUT);
 
         Some(Self { state, irq_input })
     }
