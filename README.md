@@ -137,8 +137,8 @@ dependencies:
 #### ... on Nix (Linux / MacOS)
 
 ```shell
-$ nix-shell
 # and then `cargo test`
+$ nix develop
 ```
 
 #### ... on Ubuntu
