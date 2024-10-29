@@ -36,10 +36,10 @@ impl Adc {
     }
 
     pub fn set_voltage(&mut self, id: AdcId, voltage: AdcMillivolts) {
-        self.borrow_mut().voltages.push_back((id, voltage));
+        self.state_mut().voltages.push_back((id, voltage));
     }
 
-    fn borrow_mut(&mut self) -> &mut AdcState {
+    fn state_mut(&mut self) -> &mut AdcState {
         // Safety: `state` points to a valid object; nothing else is writing
         // there at the moment, as guarded by `&mut self` here and on
         // `Avr::run()`

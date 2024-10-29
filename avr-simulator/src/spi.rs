@@ -40,11 +40,11 @@ impl Spi {
     }
 
     pub fn read(&mut self) -> Option<u8> {
-        self.borrow_mut().rx.pop_front()
+        self.state_mut().rx.pop_front()
     }
 
     pub fn write(&mut self, byte: u8) {
-        self.borrow_mut().tx.push_back(byte);
+        self.state_mut().tx.push_back(byte);
     }
 
     pub fn flush(&mut self) {
@@ -52,7 +52,7 @@ impl Spi {
             return;
         }
 
-        if let Some(byte) = self.borrow_mut().tx.pop_front() {
+        if let Some(byte) = self.state_mut().tx.pop_front() {
             unsafe {
                 ffi::avr_raise_irq(self.irq_input.as_ptr(), byte as _);
             }
@@ -61,7 +61,7 @@ impl Spi {
         }
     }
 
-    fn borrow_mut(&mut self) -> &mut SpiState {
+    fn state_mut(&mut self) -> &mut SpiState {
         // Safety: `state` points to a valid object; nothing else is writing
         // there at the moment, as guarded by `&mut self` here and on
         // `Avr::run()`

@@ -77,20 +77,20 @@ impl Uart {
 
     pub fn read(&mut self) -> Option<u8> {
         // Safety: We're releasing the borrow right-away
-        unsafe { self.borrow_mut() }.rx.pop_front()
+        unsafe { self.state_mut() }.rx.pop_front()
     }
 
     /// Schedules a byte to be sent during the nearest [`Self::flush()`].
     pub fn write(&mut self, byte: u8) {
         // Safety: We're releasing the borrow right-away
-        unsafe { self.borrow_mut() }.tx.push_back(byte);
+        unsafe { self.state_mut() }.tx.push_back(byte);
     }
 
     pub fn flush(&mut self) {
         loop {
             let byte = {
                 // Safety: We're releasing the borrow before calling `.raise_irq()`
-                let state = unsafe { self.borrow_mut() };
+                let state = unsafe { self.state_mut() };
 
                 if !state.xon {
                     break;
@@ -113,7 +113,7 @@ impl Uart {
     ///
     /// - UART interrupts are re-entrant, so the caller must make sure to
     ///   release the borrow before calling [`AvrManager::raise_irq()`].
-    unsafe fn borrow_mut(&mut self) -> &mut UartState {
+    unsafe fn state_mut(&mut self) -> &mut UartState {
         self.state.as_mut()
     }
 
