@@ -12,37 +12,37 @@ tl;dr get your microcontroller's firmware black-box-tested in seconds!
 [AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
 [simavr]: https://github.com/buserror/simavr
 
-## Getting Started
+## Getting started
 
-Create a crate dedicated to your project's tests:
+Create a crate dedicated to your firmware's tests:
 
 ```shell
-$ cargo new yourproject-tests --lib
+$ cargo new firmware-tests --lib
 ```
 
 ... add `avr-tester` as its dependency:
 
 ```toml
-# yourproject-tests/Cargo.toml
+# firmware-tests/Cargo.toml
 
 [dependencies]
 avr-tester = "0.2"
 ```
 
-... and, just like that, start writing tests:
+... and start writing tests:
 
 ```rust
-// yourproject-tests/src/lib.rs
+// firmware-tests/src/lib.rs
 
 use avr_tester::*;
 
 fn avr() -> AvrTester {
     AvrTester::atmega328p()
         .with_clock_of_16_mhz()
-        .load("../../yourproject/target/atmega328p/release/yourproject.elf")
+        .load("../../firmware/target/atmega328p/release/firmware.elf")
 }
 
-// Assuming `yourproject` implements a ROT-13 encoder:
+// Assuming `firmware` implements a ROT-13 encoder:
 
 #[test]
 fn short_text() {
@@ -76,41 +76,41 @@ fn long_text() {
 }
 ```
 
-... having the tests ready, just run `cargo test` inside `yourproject-tests` :-)
+... having the tests ready, just run `cargo test` inside `firmware-tests` :-)
 
-Note that because AvrTester simulates an actual AVR, you don't have to modify
-`yourproject` *at all* - it's free to use timers, GPIOs etc. and everything
-should just work ™.
+Since AvrTester emulates an actual AVR, you don't have to modify your firmware
+at all - it can use timers, GPIOs etc. and everything should just work ™.
 
-In fact, `yourproject` doesn't even have to be written in Rust - you can create
-Rust-based tests for a firmware written in C, Zig or anything else!
+In fact, your project doesn't even have to be written in Rust - you can create
+Rust tests for a firmware written in C, Zig and anything else!
 
-## Examples
+## Features
 
-- [Analog pins](avr-tester/tests/tests/pins-analog.rs),
-- [Digital pins](avr-tester/tests/tests/pins-digital.rs),
-- [SPI](avr-tester/tests/tests/spi.rs),
-- [Shift registers](avr-tester/tests/tests/components-shift-register.rs).
-- [UART](avr-tester/tests/tests/uart.rs),
+- [Analog pins](avr-tester/tests/examples/analog_pins.rs),
+- [Custom components](avr-tester/tests/examples/shift_register.rs),
+- [Digital pins](avr-tester/tests/examples/digital_pins.rs),
+- [SPIs](avr-tester/tests/examples/spi.rs),
+- [TWIs](avr-tester/tests/examples/twi.rs) (aka I2C),
+- [Timeouts](avr-tester/tests/examples/timeout.rs),
+- [UARTs](avr-tester/tests/examples/uart.rs).
 
-## Requirements & supported platforms
+See more: <./avr-tester/tests/examples>.
+
+## Supported platforms
 
 See: [simavr-ffi](https://github.com/Patryk27/simavr-ffi).
 
 ## Roadmap
 
-Following features seem to be supported by simavr, but haven't been yet exposed
-in AvrTester:
+Following features are supported by simavr, but haven't been yet exposed in
+AvrTester:
 
-- interrupts,
+- Interrupts,
 - EEPROM,
-- I2C,
-- watchdog,
-- TWI,
-- <https://lib.rs/crates/simavr-section>,
+- Watchdog,
 - USB.
 
-(your firmware can use those features, but you just won't be able to test them.)
+Your firmware can use those features, you just won't be able to test them.
 
 ## Caveats
 
@@ -124,28 +124,21 @@ Pull requests are very much welcome!
 
 ### Tests
 
-AvrTester's integration tests lay in `avr-tester/tests` - you can run them with:
+Use `just test` to test AvrTester (so meta!) -- note that you might need some
+additional dependencies:
+
+#### ... using Nix (Linux / Mac)
 
 ```shell
-$ cd avr-tester
-$ cargo test
-```
-
-Note that for those tests to work, you might need some additional
-dependencies:
-
-#### ... on Nix (Linux / MacOS)
-
-```shell
-# and then `cargo test`
 $ nix develop
+# and then `just test`
 ```
 
 #### ... on Ubuntu
 
 ```shell
 $ sudo apt install avr-libc gcc-avr
-# and then `cargo test`
+# and then `just test`
 ```
 
 ## License
