@@ -59,7 +59,10 @@ impl Firmware {
 impl Drop for Firmware {
     fn drop(&mut self) {
         unsafe {
-            drop(Box::from_raw(self.ptr.as_ptr()));
+            alloc::dealloc(
+                self.ptr.as_ptr() as *mut u8,
+                alloc::Layout::new::<ffi::elf_firmware_t>(),
+            );
         }
     }
 }
