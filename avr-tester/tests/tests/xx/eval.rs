@@ -36,7 +36,10 @@ fn primitives() {
     for ty in Type::all() {
         for op in Op::all() {
             if !ty.supports(op) {
-                println!("-> {:?}.{:?} (skipping; not supported on AVR)", ty, op);
+                println!(
+                    "-> {:?}.{:?} (skipping; not supported on AVR)",
+                    ty, op
+                );
                 continue;
             }
 
@@ -104,7 +107,8 @@ fn expressions() {
 
                 for _ in 0..=depth {
                     let build_expression = Expression::from_op(Op::random(ty));
-                    let value = Box::new(Expression::Const(Value::random_half(ty)));
+                    let value =
+                        Box::new(Expression::Const(Value::random_half(ty)));
 
                     expr = if rng.gen::<bool>() {
                         build_expression(Box::new(expr), value)

@@ -53,5 +53,5 @@ impl ComponentRuntime {
 }
 
 thread_local! {
-    static RUNTIME: RefCell<Option<ComponentRuntime>> = RefCell::new(None);
+    static RUNTIME: RefCell<Option<ComponentRuntime>> = const { RefCell::new(None) };
 }

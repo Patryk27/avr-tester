@@ -34,7 +34,8 @@ mod prelude {
 }
 
 use avr_tester::{AvrTester, AvrTesterBuilder};
-use std::{path::Path, process::Command};
+use std::path::Path;
+use std::process::Command;
 
 /// Compiles `test` and returns AvrTester for it.
 ///

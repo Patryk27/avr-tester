@@ -15,7 +15,8 @@ impl Avr {
 
         // Safety: `c_mcu` points to a valid C-style string
         let inner = unsafe { ffi::avr_make_mcu_by_name(c_mcu.as_ptr()) };
-        let inner = NonNull::new(inner).unwrap_or_else(|| panic!("Unknown AVR: {}", mcu));
+        let inner = NonNull::new(inner)
+            .unwrap_or_else(|| panic!("Unknown AVR: {}", mcu));
 
         let mut this = Self { inner };
 
@@ -78,14 +79,21 @@ impl Avr {
     }
 
     pub fn io_getirq(&self, ioctl: IoCtl, irq: u32) -> NonNull<ffi::avr_irq_t> {
-        self.try_io_getirq(ioctl, irq)
-            .unwrap_or_else(|| panic!("avr_io_getirq({ioctl:#?}, {irq}) failed"))
+        self.try_io_getirq(ioctl, irq).unwrap_or_else(|| {
+            panic!("avr_io_getirq({ioctl:#?}, {irq}) failed")
+        })
     }
 
-    pub fn try_io_getirq(&self, ioctl: IoCtl, irq: u32) -> Option<NonNull<ffi::avr_irq_t>> {
+    pub fn try_io_getirq(
+        &self,
+        ioctl: IoCtl,
+        irq: u32,
+    ) -> Option<NonNull<ffi::avr_irq_t>> {
         // Safety: `avr_io_getirq()` only looks for the matching ioctl - it
         // doesn't require any specific payload or anything
-        let ptr = unsafe { ffi::avr_io_getirq(self.inner.as_ptr(), ioctl.into_ffi(), irq as _) };
+        let ptr = unsafe {
+            ffi::avr_io_getirq(self.inner.as_ptr(), ioctl.into_ffi(), irq as _)
+        };
 
         NonNull::new(ptr)
     }
@@ -95,7 +103,9 @@ impl Avr {
     /// Callers must ensure that given callback is meant for given `irq`.
     pub unsafe fn irq_register_notify<T>(
         irq: NonNull<ffi::avr_irq_t>,
-        notify: Option<unsafe extern "C" fn(NonNull<ffi::avr_irq_t>, u32, NonNull<T>)>,
+        notify: Option<
+            unsafe extern "C" fn(NonNull<ffi::avr_irq_t>, u32, NonNull<T>),
+        >,
         param: *mut T,
     ) {
         // Safety: We're transmuting two parameters:
@@ -104,9 +114,11 @@ impl Avr {
         // - `NonNull<T>` -> `*mut c_void`
         //
         // ... where both conversions are legal.
+        #[allow(clippy::missing_transmute_annotations)]
         let notify = mem::transmute(notify);
 
         // Safety: We're transmuting `*mut T` -> `*mut c_void`, which is legal
+        #[allow(clippy::missing_transmute_annotations)]
         let param = mem::transmute(param);
 
         ffi::avr_irq_register_notify(irq.as_ptr(), notify, param);

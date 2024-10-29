@@ -5,7 +5,8 @@ use crate::*;
 use avr_simulator::ffi;
 use std::marker::PhantomData;
 
-pub use self::{analog_pin::*, digital_pin::*};
+pub use self::analog_pin::*;
+pub use self::digital_pin::*;
 
 /// Provides access to analog and digital pins.
 pub struct Pins<'a> {

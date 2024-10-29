@@ -8,8 +8,10 @@ use self::component_controller::*;
 use crate::*;
 use std::future::Future;
 
-pub use self::{component_handle::*, component_state::*};
-pub(crate) use self::{component_runtime::*, futures::*};
+pub use self::component_handle::*;
+pub(crate) use self::component_runtime::*;
+pub use self::component_state::*;
+pub(crate) use self::futures::*;
 
 /// Manages components.
 ///
@@ -157,7 +159,10 @@ impl Components {
     /// Creates a new component and attaches it into the AVR.
     ///
     /// See [`Components`] for more details.
-    pub fn add(&mut self, component: impl Future<Output = ()> + 'static) -> ComponentHandle {
+    pub fn add(
+        &mut self,
+        component: impl Future<Output = ()> + 'static,
+    ) -> ComponentHandle {
         let (controller, handle) = ComponentController::new(component);
 
         self.components.push(controller);
@@ -181,7 +186,8 @@ impl Components {
 
         let mut components_to_remove = Vec::new();
 
-        for (component_idx, component) in self.components.iter_mut().enumerate() {
+        for (component_idx, component) in self.components.iter_mut().enumerate()
+        {
             match component.run() {
                 ComponentControllerResult::KeepComponent => {
                     //
@@ -192,7 +198,9 @@ impl Components {
             }
         }
 
-        for (removed_components, component_idx) in components_to_remove.into_iter().enumerate() {
+        for (removed_components, component_idx) in
+            components_to_remove.into_iter().enumerate()
+        {
             self.components.remove(component_idx - removed_components);
         }
 

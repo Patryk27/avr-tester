@@ -20,7 +20,8 @@
 //! See: [../../../avr-tester-tests/components-shift-register/src/main.rs].
 
 use crate::prelude::*;
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 async fn shift_register(numbers: Rc<RefCell<Vec<u8>>>) {
     let avr = avr_rt();
@@ -66,7 +67,8 @@ fn test() {
 fn remove() {
     let mut avr = avr("components-shift-register");
     let numbers = Rc::new(RefCell::new(Vec::new()));
-    let shift_register = avr.components().add(shift_register(Rc::clone(&numbers)));
+    let shift_register =
+        avr.components().add(shift_register(Rc::clone(&numbers)));
 
     // Wait until we receive the first number
     while numbers.borrow().len() == 0 {
@@ -88,7 +90,8 @@ fn remove() {
 fn pause_and_resume() {
     let mut avr = avr("components-shift-register");
     let numbers = Rc::new(RefCell::new(Vec::new()));
-    let shift_register = avr.components().add(shift_register(Rc::clone(&numbers)));
+    let shift_register =
+        avr.components().add(shift_register(Rc::clone(&numbers)));
 
     // Wait until we receive the first number
     while numbers.borrow().len() == 0 {

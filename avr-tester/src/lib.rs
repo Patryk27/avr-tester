@@ -41,12 +41,18 @@ mod utils;
 mod write;
 
 use avr_simulator::{AvrSimulator, AvrState};
-use std::{marker::PhantomData, path::Path};
+use std::marker::PhantomData;
+use std::path::Path;
 
-pub use self::{
-    builder::*, components::*, duration_ext::*, pins::*, read::*, spi::*, uart::*, utils::*,
-    write::*,
-};
+pub use self::builder::*;
+pub use self::components::*;
+pub use self::duration_ext::*;
+pub use self::pins::*;
+pub use self::read::*;
+pub use self::spi::*;
+pub use self::uart::*;
+pub use self::utils::*;
+pub use self::write::*;
 pub use avr_simulator::AvrDuration;
 
 /// Simulator's entry point; you can build it using [`AvrTester::atmega328p()`]
@@ -92,7 +98,8 @@ impl AvrTester {
             .run(&mut self.sim, self.clock_frequency, step.tt);
 
         if let Some(remaining_clock_cycles) = &mut self.remaining_clock_cycles {
-            *remaining_clock_cycles = remaining_clock_cycles.saturating_sub(step.tt.as_cycles());
+            *remaining_clock_cycles =
+                remaining_clock_cycles.saturating_sub(step.tt.as_cycles());
 
             if *remaining_clock_cycles == 0 {
                 panic!("Test timed-out");
@@ -227,9 +234,9 @@ impl AvrTester {
     }
 
     fn sim(&mut self) -> &mut AvrSimulator {
-        self.sim
-            .as_mut()
-            .expect("AvrSimulator had been deallocated - has some component crashed?")
+        self.sim.as_mut().expect(
+            "AvrSimulator had been deallocated - has some component crashed?",
+        )
     }
 }
 
@@ -272,7 +279,9 @@ impl AvrTesterAsync {
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_us(&self, n: u64) {
         let fut = ComponentRuntime::with(|rt| {
-            SleepFuture::new(AvrDuration::new(rt.clock_frequency(), 0).with_micros(n))
+            SleepFuture::new(
+                AvrDuration::new(rt.clock_frequency(), 0).with_micros(n),
+            )
         });
 
         fut.await;
@@ -283,7 +292,9 @@ impl AvrTesterAsync {
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_ms(&self, n: u64) {
         let fut = ComponentRuntime::with(|rt| {
-            SleepFuture::new(AvrDuration::new(rt.clock_frequency(), 0).with_millis(n))
+            SleepFuture::new(
+                AvrDuration::new(rt.clock_frequency(), 0).with_millis(n),
+            )
         });
 
         fut.await;
@@ -294,7 +305,9 @@ impl AvrTesterAsync {
     /// See [`avr_rt()`] for more details.
     pub async fn run_for_s(&self, n: u64) {
         let fut = ComponentRuntime::with(|rt| {
-            SleepFuture::new(AvrDuration::new(rt.clock_frequency(), 0).with_secs(n))
+            SleepFuture::new(
+                AvrDuration::new(rt.clock_frequency(), 0).with_secs(n),
+            )
         });
 
         fut.await;

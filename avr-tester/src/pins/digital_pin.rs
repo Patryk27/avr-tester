@@ -215,7 +215,9 @@ impl DigitalPinAsync {
 
     /// Asynchronous equivalent of [`DigitalPin::is_high()`].
     pub fn is_high(&self) -> bool {
-        ComponentRuntime::with(|rt| rt.sim().get_digital_pin(self.port, self.pin))
+        ComponentRuntime::with(|rt| {
+            rt.sim().get_digital_pin(self.port, self.pin)
+        })
     }
 
     /// Asynchronous equivalent of [`DigitalPin::assert_low()`].
@@ -232,7 +234,9 @@ impl DigitalPinAsync {
 
     /// Asynchronous equivalent of [`DigitalPin::pulse_in()`].
     pub async fn pulse_in(&self) -> AvrDuration {
-        let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
+        let mut tt = ComponentRuntime::with(|rt| {
+            AvrDuration::new(rt.clock_frequency(), 0)
+        });
         let state = self.is_high();
 
         while self.is_high() == state {
@@ -244,7 +248,9 @@ impl DigitalPinAsync {
 
     /// Asynchronous equivalent of [`DigitalPin::wait_while_low()`].
     pub async fn wait_while_low(&self) -> AvrDuration {
-        let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
+        let mut tt = ComponentRuntime::with(|rt| {
+            AvrDuration::new(rt.clock_frequency(), 0)
+        });
 
         while self.is_low() {
             tt += avr_rt().run().await;
@@ -255,7 +261,9 @@ impl DigitalPinAsync {
 
     /// Asynchronous equivalent of [`DigitalPin::wait_while_high()`].
     pub async fn wait_while_high(&self) -> AvrDuration {
-        let mut tt = ComponentRuntime::with(|rt| AvrDuration::new(rt.clock_frequency(), 0));
+        let mut tt = ComponentRuntime::with(|rt| {
+            AvrDuration::new(rt.clock_frequency(), 0)
+        });
 
         while self.is_high() {
             tt += avr_rt().run().await;

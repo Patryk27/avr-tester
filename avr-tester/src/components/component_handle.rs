@@ -1,5 +1,6 @@
 use super::*;
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct ComponentHandle {
     state: Rc<RefCell<ComponentState>>,

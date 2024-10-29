@@ -1,13 +1,14 @@
 use super::*;
 
-/// Provides access to simavr's digital pins.
 pub struct Port;
 
 impl Port {
     pub fn set_pin(avr: &Avr, port: char, pin: u8, high: bool) {
         let irq = avr
             .try_io_getirq(IoCtl::IoPortGetIrq { port }, pin as u32)
-            .unwrap_or_else(|| panic!("Current AVR doesn't have pin P{}{}", port, pin));
+            .unwrap_or_else(|| {
+                panic!("Current AVR doesn't have pin P{}{}", port, pin)
+            });
 
         // Safety: `IoPortGetIrq` can be raised with a zero or one
         unsafe {
@@ -24,7 +25,8 @@ impl Port {
 
         // Safety: `IoCtl::IoPortGetState` requires parameter of type
         // `avr_ioport_state_t`, which is the case here
-        let status = unsafe { avr.ioctl(IoCtl::IoPortGetState { port }, &mut state) };
+        let status =
+            unsafe { avr.ioctl(IoCtl::IoPortGetState { port }, &mut state) };
 
         if status == -1 {
             panic!("Current AVR doesn't have pin P{}{}", port, pin);

@@ -20,14 +20,18 @@
 //! See: [../../../avr-tester-tests/components-spi/src/main.rs].
 
 use crate::prelude::*;
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 enum CatchWhenCs {
     IsHigh,
     IsLow,
 }
 
-async fn spi_input_catcher(catch_when_cs: CatchWhenCs, numbers: Rc<RefCell<Vec<u8>>>) {
+async fn spi_input_catcher(
+    catch_when_cs: CatchWhenCs,
+    numbers: Rc<RefCell<Vec<u8>>>,
+) {
     let avr = avr_rt();
 
     loop {

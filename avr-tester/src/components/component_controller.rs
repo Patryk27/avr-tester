@@ -2,7 +2,11 @@ mod waker;
 
 use self::waker::*;
 use super::*;
-use std::{cell::RefCell, fmt, pin::Pin, rc::Rc, task::Context};
+use std::cell::RefCell;
+use std::fmt;
+use std::pin::Pin;
+use std::rc::Rc;
+use std::task::Context;
 
 pub struct ComponentController {
     component: Pin<Box<dyn Future<Output = ()>>>,
@@ -10,7 +14,9 @@ pub struct ComponentController {
 }
 
 impl ComponentController {
-    pub fn new(component: impl Future<Output = ()> + 'static) -> (Self, ComponentHandle) {
+    pub fn new(
+        component: impl Future<Output = ()> + 'static,
+    ) -> (Self, ComponentHandle) {
         let state = Rc::new(RefCell::new(ComponentState::Working));
 
         let controller = Self {

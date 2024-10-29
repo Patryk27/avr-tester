@@ -1,9 +1,7 @@
-//! Bare-bones wrapper for simavr.
+//! Oxidized interface for simavr.
 //!
 //! The main purpose of this crate is to serve as a building block for
-//! AvrTester - so while this crate does provide a somewhat high-level interface
-//! over simavr, this interface is limited and curated (i.e. not as generic as
-//! simavr itself).
+//! AvrTester, providing a safe, curated access to simavr.
 //!
 //! See: [`AvrSimulator::new()`].
 
@@ -18,13 +16,19 @@ mod spi;
 mod state;
 mod uart;
 
-use self::{adc::*, avr::*, firmware::*, ioctl::*, port::*, spi::*, uart::*};
-use std::{collections::HashMap, path::Path};
-
-pub use self::{duration::*, state::*};
+use self::adc::*;
+use self::avr::*;
+pub use self::duration::*;
+use self::firmware::*;
+use self::ioctl::*;
+use self::port::*;
+use self::spi::*;
+pub use self::state::*;
+use self::uart::*;
 pub use simavr_ffi as ffi;
+use std::collections::HashMap;
+use std::path::Path;
 
-/// Bare-bones wrapper for simavr.
 #[derive(Debug)]
 pub struct AvrSimulator {
     avr: Avr,
@@ -39,55 +43,12 @@ impl AvrSimulator {
 
         let mut avr = Avr::new(mcu, frequency);
 
-        // Safety: `avr` lives as long as `adc`
-        let adc = unsafe { Adc::new(&avr) };
-
         Firmware::new().load_elf(firmware).flash_to(&mut avr);
 
-        // Initialize SPIs.
-        //
-        // Note that we have to do that eagerly instead of on-demand, because
-        // we have to register for the input IRQ notifications as soon as
-        // possible as not to miss any bytes.
-        let spis = {
-            let mut spis = HashMap::new();
-
-            for spi_id in 0..8 {
-                // Safety: `avr` lives as long as `spi`
-                let spi = unsafe { Spi::new(spi_id, &avr) };
-
-                if let Some(spi) = spi {
-                    spis.insert(spi_id, spi);
-                } else {
-                    break;
-                }
-            }
-
-            spis
-        };
-
-        // Initialize UARTs.
-        //
-        // As with SPIs, we have to do that eagerly.
-        let uarts = {
-            let mut uarts = HashMap::new();
-
-            for uart_id in 0..8 {
-                #[allow(clippy::char_lit_as_u8)]
-                let uart_id = (('0' as u8) + uart_id) as char;
-
-                // Safety: `avr` lives as long as `uart`
-                let uart = unsafe { Uart::new(uart_id, &mut avr) };
-
-                if let Some(uart) = uart {
-                    uarts.insert(uart_id, uart);
-                } else {
-                    break;
-                }
-            }
-
-            uarts
-        };
+        // Safety: `avr` lives as long as `adc`, `spis` etc.
+        let adc = unsafe { Adc::new(&avr) };
+        let spis = unsafe { Self::init_spis(&avr) };
+        let uarts = unsafe { Self::init_uarts(&mut avr) };
 
         Self {
             avr,
@@ -95,6 +56,37 @@ impl AvrSimulator {
             spis,
             uarts,
         }
+    }
+
+    unsafe fn init_spis(avr: &Avr) -> HashMap<u8, Spi> {
+        let mut spis = HashMap::new();
+
+        for id in 0..8 {
+            if let Some(spi) = Spi::new(id, avr) {
+                spis.insert(id, spi);
+            } else {
+                break;
+            }
+        }
+
+        spis
+    }
+
+    unsafe fn init_uarts(avr: &mut Avr) -> HashMap<char, Uart> {
+        let mut uarts = HashMap::new();
+
+        for id in 0..8 {
+            #[allow(clippy::char_lit_as_u8)]
+            let id = (('0' as u8) + id) as char;
+
+            if let Some(uart) = Uart::new(id, avr) {
+                uarts.insert(id, uart);
+            } else {
+                break;
+            }
+        }
+
+        uarts
     }
 
     /// Executes a single instruction.

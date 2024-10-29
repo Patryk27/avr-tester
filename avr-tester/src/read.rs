@@ -15,7 +15,7 @@ pub trait ReaderHelper {
         T: Readable;
 }
 
-impl<'a> ReaderHelper for dyn Reader + 'a {
+impl ReaderHelper for dyn Reader + '_ {
     fn read<T>(&mut self) -> T
     where
         T: Readable,

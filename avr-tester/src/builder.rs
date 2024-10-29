@@ -1,5 +1,6 @@
 use crate::AvrTester;
-use std::{path::Path, time::Duration};
+use std::path::Path;
+use std::time::Duration;
 
 pub struct AvrTesterBuilder {
     mcu: String,
@@ -141,7 +142,12 @@ impl AvrTesterBuilder {
             .map(|timeout| (timeout.as_secs_f32() * (clock_frequency as f32)))
             .map(|cc| cc as _);
 
-        AvrTester::new(&self.mcu, clock_frequency, firmware, remaining_clock_cycles)
+        AvrTester::new(
+            &self.mcu,
+            clock_frequency,
+            firmware,
+            remaining_clock_cycles,
+        )
     }
 }
 

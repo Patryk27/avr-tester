@@ -9,7 +9,7 @@ pub trait WriterHelper {
         T: Writable;
 }
 
-impl<'a> WriterHelper for dyn Writer + 'a {
+impl WriterHelper for dyn Writer + '_ {
     fn write<T>(&mut self, value: T)
     where
         T: Writable,

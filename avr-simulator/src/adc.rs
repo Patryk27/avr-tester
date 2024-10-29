@@ -1,10 +1,10 @@
 use super::*;
-use std::{collections::VecDeque, ptr::NonNull};
+use std::collections::VecDeque;
+use std::ptr::NonNull;
 
 pub type AdcId = u8;
 pub type AdcMillivolts = u32;
 
-/// Provides access to simavr's analog pins.
 #[derive(Debug)]
 pub struct Adc {
     state: NonNull<AdcState>,
@@ -19,13 +19,18 @@ impl Adc {
     /// - Because this function registers an IRQ notification, the object
     ///   returned from here must be kept alive for at least as long as `avr`.
     pub unsafe fn new(avr: &Avr) -> Option<Self> {
-        let irq = avr.try_io_getirq(IoCtl::AdcGetIrq, ffi::ADC_IRQ_OUT_TRIGGER)?;
+        let irq =
+            avr.try_io_getirq(IoCtl::AdcGetIrq, ffi::ADC_IRQ_OUT_TRIGGER)?;
 
         let this = Self {
             state: NonNull::from(Box::leak(Default::default())),
         };
 
-        Avr::irq_register_notify(irq, Some(Self::on_adc_ready), this.state.as_ptr());
+        Avr::irq_register_notify(
+            irq,
+            Some(Self::on_adc_ready),
+            this.state.as_ptr(),
+        );
 
         Some(this)
     }
@@ -46,11 +51,12 @@ impl Adc {
         _: u32,
         mut state: NonNull<AdcState>,
     ) {
-        let (adc_id, adc_voltage) = if let Some(voltage) = state.as_mut().voltages.pop_front() {
-            voltage
-        } else {
-            return;
-        };
+        let (adc_id, adc_voltage) =
+            if let Some(voltage) = state.as_mut().voltages.pop_front() {
+                voltage
+            } else {
+                return;
+            };
 
         let irq = irq
             .as_ptr()

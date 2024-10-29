@@ -1,5 +1,8 @@
 use super::*;
-use std::{alloc, ffi::CString, path::Path, ptr::NonNull};
+use std::alloc;
+use std::ffi::CString;
+use std::path::Path;
+use std::ptr::NonNull;
 
 pub struct Firmware {
     ptr: NonNull<ffi::elf_firmware_t>,
@@ -33,7 +36,9 @@ impl Firmware {
 
         // Safety: `self.ptr` points at a valid, zeroed instance of
         // `elf_firmware_t`; `c_path` points at a valid `CString`
-        let status = unsafe { ffi::elf_read_firmware(c_path.as_ptr(), self.ptr.as_ptr()) };
+        let status = unsafe {
+            ffi::elf_read_firmware(c_path.as_ptr(), self.ptr.as_ptr())
+        };
 
         if status != 0 {
             panic!(

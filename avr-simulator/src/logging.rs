@@ -6,8 +6,12 @@ static INITIALIZED: AtomicBool = AtomicBool::new(false);
 /// Overwrites simavr's default logger so that it doesn't print stuff to stdout
 /// and stderr.
 pub fn init() {
-    let just_initialized =
-        INITIALIZED.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst);
+    let just_initialized = INITIALIZED.compare_exchange(
+        false,
+        true,
+        Ordering::SeqCst,
+        Ordering::SeqCst,
+    );
 
     if just_initialized.is_ok() {
         // Safety: Callback has correct signature (as proven by bindgen) and,
@@ -20,7 +24,12 @@ pub fn init() {
 }
 
 #[cfg(target_os = "macos")]
-unsafe extern "C" fn on_message_logged(_: *mut ffi::avr_t, _: i32, _: *const i8, _: *mut i8) {
+unsafe extern "C" fn on_message_logged(
+    _: *mut ffi::avr_t,
+    _: i32,
+    _: *const i8,
+    _: *mut i8,
+) {
     //
 }
 

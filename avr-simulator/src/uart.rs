@@ -1,7 +1,7 @@
 use super::*;
-use std::{collections::VecDeque, ptr::NonNull};
+use std::collections::VecDeque;
+use std::ptr::NonNull;
 
-/// Provides access to simavr's UARTs.
 #[derive(Debug)]
 pub struct Uart {
     state: NonNull<UartState>,
@@ -69,7 +69,8 @@ impl Uart {
             state.as_ptr(),
         );
 
-        let irq_input = avr.io_getirq(IoCtl::UartGetIrq { uart: id }, ffi::UART_IRQ_INPUT);
+        let irq_input =
+            avr.io_getirq(IoCtl::UartGetIrq { uart: id }, ffi::UART_IRQ_INPUT);
 
         Some(Self { state, irq_input })
     }
@@ -124,7 +125,11 @@ impl Uart {
         state.as_mut().rx.push_back(value as u8);
     }
 
-    unsafe extern "C" fn on_xon(_: NonNull<ffi::avr_irq_t>, _: u32, mut state: NonNull<UartState>) {
+    unsafe extern "C" fn on_xon(
+        _: NonNull<ffi::avr_irq_t>,
+        _: u32,
+        mut state: NonNull<UartState>,
+    ) {
         state.as_mut().xon = true;
     }
 

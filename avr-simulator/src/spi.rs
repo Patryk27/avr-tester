@@ -1,7 +1,7 @@
 use super::*;
-use std::{collections::VecDeque, ptr::NonNull};
+use std::collections::VecDeque;
+use std::ptr::NonNull;
 
-/// Provides access to simavr's SPI.
 #[derive(Debug)]
 pub struct Spi {
     state: NonNull<SpiState>,
@@ -30,7 +30,11 @@ impl Spi {
             ready: true,
         };
 
-        Avr::irq_register_notify(irq_output, Some(Self::on_output), this.state.as_ptr());
+        Avr::irq_register_notify(
+            irq_output,
+            Some(Self::on_output),
+            this.state.as_ptr(),
+        );
 
         Some(this)
     }
