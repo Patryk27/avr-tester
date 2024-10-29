@@ -1,15 +1,15 @@
-//! Functional testing framework for [AVR] binaries, powered by [simavr]:
+//! Framework for testing [AVR] binaries, powered by [simavr]:
 //!
 //! ```no_run
 //! use avr_tester::*;
 //!
-//! // Assuming `yourproject` implements a ROT-13 encoder:
+//! // Assuming `firmware` implements a ROT-13 encoder:
 //!
 //! #[test]
 //! fn test() {
 //!     let mut avr = AvrTester::atmega328p()
 //!         .with_clock_of_16_mhz()
-//!         .load("../../yourproject/target/atmega328p/release/yourproject.elf");
+//!         .load("../../firmware/target/atmega328p/release/firmware.elf");
 //!
 //!     // Let's give our firmware a moment to initialize:
 //!     avr.run_for_ms(1);
@@ -25,7 +25,7 @@
 //! }
 //! ```
 //!
-//! For more details, please see README.
+//! See more: <../tests/examples>.
 //!
 //! [AVR]: https://en.wikipedia.org/wiki/AVR_microcontrollers
 //! [simavr]: https://github.com/buserror/simavr
@@ -78,6 +78,11 @@ impl AvrTester {
             remaining_clock_cycles,
             components: Components::new(),
         }
+    }
+
+    #[doc(hidden)]
+    pub fn test() -> Self {
+        todo!();
     }
 
     /// Runs a full single instruction, returning the number of cycles it took
@@ -149,7 +154,7 @@ impl AvrTester {
         }
     }
 
-    /// Runs firmware for given number of _AVR_ microseconds, considering the
+    /// Runs firmware for given number of AVR microseconds, considering the
     /// clock specified through [`AvrTesterBuilder::with_clock()`].
     ///
     /// See:
@@ -162,7 +167,7 @@ impl AvrTester {
         self.run_for(AvrDuration::micros(self, n));
     }
 
-    /// Runs firmware for given number of _AVR_ milliseconds, considering the
+    /// Runs firmware for given number of AVR milliseconds, considering the
     /// clock specified through [`AvrTesterBuilder::with_clock()`].
     ///
     /// See:
@@ -175,7 +180,7 @@ impl AvrTester {
         self.run_for(AvrDuration::millis(self, n));
     }
 
-    /// Runs firmware for given number of _AVR_ seconds, considering the clock
+    /// Runs firmware for given number of AVR seconds, considering the clock
     /// specified through [`AvrTesterBuilder::with_clock()`].
     ///
     /// See:
@@ -188,42 +193,44 @@ impl AvrTester {
         self.run_for(AvrDuration::secs(self, n));
     }
 
-    /// Returns an object providing read & write access to the analog & digital
-    /// pins (such as `ADC1`, `PD4` etc.).
+    /// Returns an object providing access to the analog and digital pins, such
+    /// as `ADC1`, `PD4` etc.
     ///
     /// Note that the returned object contains all possible pins for all of the
     /// existing AVRs, while the AVR of yours probably supports only a subset of
     /// those pins - trying to access a pin that does not exist for your AVR
     /// will panic.
-    pub fn pins(&mut self) -> Pins<'_> {
+    pub fn pins(&mut self) -> Pins {
         Pins::new(self)
     }
 
-    /// Returns an object providing access to SPI0 (i.e. the default SPI).
+    /// Returns an object providing access to SPI0 (i.e. the default one).
     ///
     /// Note that if your AVR doesn't have SPI, operating on it will panic.
-    pub fn spi0(&mut self) -> Spi<'_> {
+    #[doc(alias = "spi")]
+    pub fn spi0(&mut self) -> Spi {
         Spi::new(self.sim(), 0)
     }
 
     /// Returns an object providing access to SPI1.
     ///
     /// Note that if your AVR doesn't have SPI, operating on it will panic.
-    pub fn spi1(&mut self) -> Spi<'_> {
+    pub fn spi1(&mut self) -> Spi {
         Spi::new(self.sim(), 1)
     }
 
-    /// Returns an object providing access to UART0 (i.e. the default UART).
+    /// Returns an object providing access to UART0 (i.e. the default one).
     ///
     /// Note that if your AVR doesn't have UART0, operating on it will panic.
-    pub fn uart0(&mut self) -> Uart<'_> {
+    #[doc(alias = "uart")]
+    pub fn uart0(&mut self) -> Uart {
         Uart::new(self.sim(), '0')
     }
 
     /// Returns an object providing access to UART1.
     ///
     /// Note that if your AVR doesn't have UART1, operating on it will panic.
-    pub fn uart1(&mut self) -> Uart<'_> {
+    pub fn uart1(&mut self) -> Uart {
         Uart::new(self.sim(), '1')
     }
 

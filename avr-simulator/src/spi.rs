@@ -90,10 +90,6 @@ impl Spi {
 
 impl Drop for Spi {
     fn drop(&mut self) {
-        // Safety: This pointer was obtained by creating a box and leaking it,
-        // so it's safe to transform it back into the box; also, we're inside a
-        // constructor, so it's guaranteed that this function will be called at
-        // most once.
         unsafe {
             drop(Box::from_raw(self.state.as_ptr()));
         }

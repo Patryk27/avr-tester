@@ -1,6 +1,6 @@
 use crate::*;
 
-/// Provides access to the SPI interface.
+/// Provides access to the SPI.
 ///
 /// See: [`Spi::read()`] and [`Spi::write()`].
 pub struct Spi<'a> {

@@ -31,9 +31,8 @@ pub(crate) use self::futures::*;
 ///
 /// ```no_run
 /// # use avr_tester::*;
-/// # fn avr() -> AvrTester { panic!() }
 /// #
-/// let mut avr = avr();
+/// let mut avr = AvrTester::test();
 ///
 /// avr.uart0().write([0x01, 0x02, 0x03]);
 ///
@@ -67,9 +66,8 @@ pub(crate) use self::futures::*;
 ///
 /// ```no_run
 /// # use avr_tester::*;
-/// # fn avr() -> AvrTester { panic!() }
 /// #
-/// let mut avr = avr();
+/// let mut avr = AvrTester::test();
 ///
 /// // Start the `PB1` toggler:
 /// avr.components().add(async {
@@ -132,9 +130,9 @@ pub(crate) use self::futures::*;
 ///
 /// ```no_run
 /// # use avr_tester::*;
-/// # fn avr() -> AvrTester { panic!() }
-/// # let mut avr = avr();
 /// #
+/// let mut avr = AvrTester::test();
+///
 /// avr.components().add(async {
 ///     loop {
 ///         let is_high = avr_rt().pins().pb1().is_high();

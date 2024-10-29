@@ -12,9 +12,7 @@ impl AvrTesterBuilder {
     /// Creates `AvrTesterBuilder`.
     ///
     /// To avoid typos, it's preferred that you use helper functions such as
-    /// [`AvrTester::atmega328p()`]; this additional constructor in here has
-    /// been provided just in case there's some AVR supported by simavr that has
-    /// not been yet exposed through AvrTester.
+    /// [`AvrTester::atmega328p()`] - this constructor is provided just in case.
     pub fn new(mcu: impl ToString) -> Self {
         Self {
             mcu: mcu.to_string(),
@@ -77,9 +75,9 @@ impl AvrTesterBuilder {
         self.with_clock(24_000_000)
     }
 
-    /// Specifies a timeout (in _AVR's_ time¹) after which calling
+    /// Specifies a timeout (in AVR's time¹) after which calling
     /// [`AvrTester::run()`] (or a similar function) will panic, aborting the
-    /// test to signal that it timed-out.
+    /// test to signal that it has timed out.
     ///
     /// This might come handy in tests that wait for AVR to do something:
     ///
@@ -132,6 +130,7 @@ impl AvrTesterBuilder {
     }
 
     /// Loads given firmware (an `*.elf` file) and boots the simulator.
+    #[doc(alias = "build")]
     pub fn load(self, firmware: impl AsRef<Path>) -> AvrTester {
         let clock_frequency = self
             .clock

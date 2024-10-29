@@ -5,7 +5,7 @@
 [docs-badge]: https://img.shields.io/docsrs/avr-tester
 [docs-link]: https://docs.rs/avr-tester
 
-Functional testing framework for [AVR] firmware, powered by [simavr].
+Framework for testing [AVR] binaries, powered by [simavr].
 
 tl;dr get your microcontroller's firmware black-box-tested in seconds!
 

@@ -1,7 +1,7 @@
 //! Oxidized interface for simavr.
 //!
-//! The main purpose of this crate is to serve as a building block for
-//! AvrTester, providing a safe, curated access to simavr.
+//! The main purpose of this crate is to serve as a building block for the
+//! `avr-tester` crate, providing a safe and curated access to simavr.
 //!
 //! See: [`AvrSimulator::new()`].
 
@@ -89,7 +89,6 @@ impl AvrSimulator {
         uarts
     }
 
-    /// Executes a single instruction.
     pub fn step(&mut self) -> StepOutcome {
         for spi in self.spis.values_mut() {
             spi.flush();

@@ -1,6 +1,6 @@
 use crate::*;
 
-/// Provides access to the UART interface.
+/// Provides access to the UART.
 ///
 /// See: [`Uart::read()`] and [`Uart::write()`].
 pub struct Uart<'a> {
@@ -22,9 +22,8 @@ impl<'a> Uart<'a> {
     ///
     /// ```no_run
     /// # use avr_tester::*;
-    /// # fn avr() -> AvrTester { panic!() }
     /// #
-    /// let mut avr = avr();
+    /// let mut avr = AvrTester::test();
     ///
     /// // Retrieves a single byte:
     /// // (when the input buffer is empty, panics.)
@@ -57,9 +56,8 @@ impl<'a> Uart<'a> {
     ///
     /// ```no_run
     /// # use avr_tester::*;
-    /// # fn avr() -> AvrTester { panic!() }
     /// #
-    /// let mut avr = avr();
+    /// let mut avr = AvrTester::test();
     ///
     /// // Transmits a single byte:
     /// avr.uart0().write(123);

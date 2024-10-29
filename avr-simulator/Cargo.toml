@@ -4,7 +4,7 @@ version = "0.2.4"
 edition = "2021"
 authors = ["Patryk Wychowaniec <pwychowaniec@pm.me>"]
 license = "MIT"
-description = "Bare-bones wrapper for simavr"
+description = "Oxidized interface for simavr"
 repository = "https://github.com/Patryk27/avr-tester"
 keywords = ["avr", "test", "framework", "microcontroller", "simavr"]
 

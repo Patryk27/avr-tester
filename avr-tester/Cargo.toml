@@ -4,10 +4,10 @@ version = "0.2.4"
 edition = "2021"
 authors = ["Patryk Wychowaniec <pwychowaniec@pm.me>"]
 license = "MIT"
-description = "Functional testing framework for AVR firmware"
+description = "Framework for testing AVR binaries"
 readme = "../README.md"
 repository = "https://github.com/Patryk27/avr-tester"
-keywords = ["avr", "test", "framework", "microcontroller", "simavr"]
+keywords = ["avr", "test", "framework", "microcontroller", "simavr", "binary"]
 
 [dependencies]
 avr-simulator = { path = "../avr-simulator", version = "0.2.4" }
