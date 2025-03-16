@@ -3,6 +3,9 @@
 #![no_std]
 #![no_main]
 
+#[cfg(feature = "custom-compiler-builtins")]
+extern crate custom_compiler_builtins;
+
 use atmega_hal::{pins, Peripherals};
 use avr_hal_generic::prelude::*;
 use panic_halt as _;

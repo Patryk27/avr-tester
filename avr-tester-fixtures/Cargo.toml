@@ -48,6 +48,18 @@ avr-hal-generic = { git = "https://github.com/Rahix/avr-hal" }
 embedded-hal = "0.2.3"
 panic-halt = "0.2"
 
+[dependencies.custom-compiler-builtins]
+package = "compiler_builtins"
+optional = true
+
+# Override this dependency if you want to test avr-tester with customized
+# compiler-builtins - then use `just test-ccb`:
+git = "https://github.com/rust-lang/compiler-builtins"
+# path = "/home/pwy/t/compiler-builtins"
+
+[features]
+custom-compiler-builtins = ["dep:custom-compiler-builtins"]
+
 [profile.release]
 codegen-units = 1
 lto = "fat"
