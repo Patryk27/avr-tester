@@ -2,10 +2,10 @@
 //! internal 4-bit counter, lightning up pins as bits in that counter are
 //! activated and deactivated.
 //!
-//! This test allows us to ensure that we don't mix up various pins and ports
-//! (e.g. by accidentally confusing `PB1` with `PB0`).
+//! This test makes sure that avr-tester doesn't mix up pins and ports (e.g. by
+//! accidentally confusing `PB1` with `PB0`).
 //!
-//! See: [../../../avr-tester-fixtures/src/acc-bits.rs].
+//! See: [../../../avr-tester-fixtures/src/acc_bits.rs].
 
 use avr_tester::AvrTester;
 
@@ -13,7 +13,7 @@ use avr_tester::AvrTester;
 fn test() {
     let mut avr = AvrTester::atmega328()
         .with_clock_of_16_mhz()
-        .load("../avr-tester-fixtures/target/atmega328p/release/acc-bits.elf");
+        .load("../avr-tester-fixtures/target/avr-none/release/acc-bits.elf");
 
     avr.run_for_us(1);
     avr.pins().pb1().assert_low();

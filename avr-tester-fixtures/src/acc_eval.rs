@@ -42,6 +42,34 @@ fn main() -> ! {
     }
 }
 
+fn eval<T>(uart: UartMut<'_>) -> T
+where
+    T: Number,
+{
+    let tok = Token::read(uart);
+
+    if let Token::Const = tok {
+        return T::read(uart);
+    }
+
+    let lhs = eval::<T>(uart);
+    let rhs = eval::<T>(uart);
+
+    match tok {
+        Token::Add => lhs + rhs,
+        Token::Sub => lhs - rhs,
+        Token::Mul => lhs * rhs,
+        Token::Div => lhs / rhs,
+        Token::Rem => lhs % rhs,
+
+        Token::Const => {
+            unreachable!()
+        }
+    }
+}
+
+type UartMut<'a> = &'a mut Usart0<MHz16>;
+
 // ----
 
 enum Type {
@@ -99,38 +127,6 @@ impl Readable for Token {
         }
     }
 }
-
-// ----
-
-fn eval<T>(uart: UartMut<'_>) -> T
-where
-    T: Number,
-{
-    let tok = Token::read(uart);
-
-    if let Token::Const = tok {
-        return T::read(uart);
-    }
-
-    let lhs = eval::<T>(uart);
-    let rhs = eval::<T>(uart);
-
-    match tok {
-        Token::Add => lhs + rhs,
-        Token::Sub => lhs - rhs,
-        Token::Mul => lhs * rhs,
-        Token::Div => lhs / rhs,
-        Token::Rem => lhs % rhs,
-
-        Token::Const => {
-            unreachable!()
-        }
-    }
-}
-
-// -----
-
-type UartMut<'a> = &'a mut Usart0<MHz16>;
 
 // -----
 
@@ -197,25 +193,3 @@ macro_rules! numbers {
 }
 
 numbers!([u8, i8, u16, i16, u32, i32, u64, i64, u128, i128]);
-
-// -----
-
-#[no_mangle]
-extern "C" fn __divti3() {
-    panic!("not supported");
-}
-
-#[no_mangle]
-extern "C" fn __modti3() {
-    panic!("not supported");
-}
-
-#[no_mangle]
-extern "C" fn __udivti3() {
-    panic!("not supported");
-}
-
-#[no_mangle]
-extern "C" fn __umodti3() {
-    panic!("not supported");
-}

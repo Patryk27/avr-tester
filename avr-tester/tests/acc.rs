@@ -1,4 +1,5 @@
-mod acceptance {
+mod acc {
     mod bits;
     mod eval;
+    mod fractal;
 }

@@ -4,41 +4,35 @@
 //! but represented in a binary protocol) and sends back a single number
 //! representing the expression's result.
 //!
-//! The evaluator supports all Rust integer types, although certain operations
-//! (e.g. 128-bit division) have to be skipped due to missing intrinsics.
+//! This test makes sure that:
 //!
-//! This test allows us to ensure that all the UART operations work correctly
-//! (there's a lot of send/recv with custom (de)serializers and whatnot).
+//! - UART operations work correctly (as there's a lot of send/recv with custom
+//!   serializers / deserializers),
+//!
+//! - AVR properly operates on all integer types.
 //!
 //! Also, this test serves as a proof that rustc + LLVM generate correct AVR
-//! code that is able to work on 16+-bit numbers.
+//! code that is able to work on all types of numbers.
 //!
-//! See: [../../../avr-tester-fixtures/src/acc-eval.rs].
+//! See: [../../../avr-tester-fixtures/src/acc_eval.rs].
 
 use avr_tester::{AvrTester, Uart, Writable, Writer, WriterHelper};
 use rand::seq::SliceRandom;
 use rand::Rng;
+use std::fmt;
 
 #[test]
-fn primitives() {
-    const TRIES: usize = 100;
+fn simple() {
+    const TRIES: usize = 128;
 
     let mut avr = AvrTester::atmega328()
         .with_clock_of_16_mhz()
-        .load("../avr-tester-fixtures/target/atmega328p/release/acc-eval.elf");
+        .load("../avr-tester-fixtures/target/avr-none/release/acc-eval.elf");
 
     avr.run_for_ms(1);
 
     for ty in Type::all() {
         for op in Op::all() {
-            if !ty.supports(op) {
-                println!(
-                    "-> {:?}.{:?} (skipping; not supported on AVR)",
-                    ty, op
-                );
-                continue;
-            }
-
             println!("-> {:?}.{:?}", ty, op);
 
             let mut tries = 0;
@@ -52,27 +46,25 @@ fn primitives() {
                 let lhs = random_value(ty);
                 let rhs = random_value(ty);
 
-                let expected = if let Some(value) = op.apply()(lhs, rhs) {
+                let expected = if let Some(value) = op.as_fn()(lhs, rhs) {
                     value
                 } else {
                     continue;
                 };
 
+                let expr = Expr::from_op(op)(
+                    Box::new(Expr::Const(lhs)),
+                    Box::new(Expr::Const(rhs)),
+                );
+
                 avr.uart0().write(ty);
-                avr.uart0().write(Token::Op(op));
-                avr.uart0().write(Token::Const);
-                avr.uart0().write(lhs);
-                avr.uart0().write(Token::Const);
-                avr.uart0().write(rhs);
+                avr.uart0().write(&expr);
                 avr.run_for_ms(ty.weight());
 
                 let actual = Value::read(ty, &mut avr.uart0());
 
                 if actual != expected {
-                    panic!(
-                        "{:?} {:?} {:?} is equal to {:?}, but AVR returned {:?}",
-                        lhs, op, rhs, expected, actual
-                    );
+                    panic!("{expr} = {expected}, but AVR said {actual}");
                 }
 
                 tries += 1;
@@ -82,7 +74,7 @@ fn primitives() {
 }
 
 #[test]
-fn expressions() {
+fn complex() {
     const TRIES: usize = 10;
     const MAX_DEPTH: u64 = 8;
 
@@ -90,7 +82,7 @@ fn expressions() {
 
     let mut avr = AvrTester::atmega328()
         .with_clock_of_16_mhz()
-        .load("../avr-tester-fixtures/target/atmega328p/release/acc-eval.elf");
+        .load("../avr-tester-fixtures/target/avr-none/release/acc-eval.elf");
 
     avr.run_for_ms(1);
 
@@ -101,12 +93,11 @@ fn expressions() {
             let mut tries = 0;
 
             while tries < TRIES {
-                let mut expr = Expression::Const(Value::random_half(ty));
+                let mut expr = Expr::Const(Value::random_half(ty));
 
                 for _ in 0..=depth {
-                    let build_expression = Expression::from_op(Op::random(ty));
-                    let value =
-                        Box::new(Expression::Const(Value::random_half(ty)));
+                    let build_expression = Expr::from_op(Op::random());
+                    let value = Box::new(Expr::Const(Value::random_half(ty)));
 
                     expr = if rng.gen::<bool>() {
                         build_expression(Box::new(expr), value)
@@ -128,10 +119,7 @@ fn expressions() {
                 let actual = Value::read(ty, &mut avr.uart0());
 
                 if actual != expected {
-                    panic!(
-                        "{:?} is equal to {:?}, but AVR returned {:?}",
-                        expr, expected, actual
-                    );
+                    panic!("{expr} = {expected}, but AVR said {actual}");
                 }
 
                 tries += 1;
@@ -181,10 +169,6 @@ impl Type {
             Self::I128 | Self::U128 => 8,
         }
     }
-
-    fn supports(self, op: Op) -> bool {
-        !matches!((self, op), (Self::I128 | Self::U128, Op::Div | Op::Rem))
-    }
 }
 
 impl Writable for Type {
@@ -209,20 +193,14 @@ impl Op {
         [Self::Add, Self::Sub, Self::Mul, Self::Div, Self::Rem]
     }
 
-    fn random(ty: Type) -> Self {
-        loop {
-            let op = Self::all()
-                .choose(&mut rand::thread_rng())
-                .cloned()
-                .unwrap();
-
-            if ty.supports(op) {
-                break op;
-            }
-        }
+    fn random() -> Self {
+        Self::all()
+            .choose(&mut rand::thread_rng())
+            .cloned()
+            .unwrap()
     }
 
-    fn apply(self) -> fn(Value, Value) -> Option<Value> {
+    fn as_fn(self) -> fn(Value, Value) -> Option<Value> {
         match self {
             Self::Add => Value::checked_add,
             Self::Sub => Value::checked_sub,
@@ -340,6 +318,23 @@ impl Writable for Value {
     }
 }
 
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Value::I8(value) => write!(f, "{value}_i8"),
+            Value::U8(value) => write!(f, "{value}_u8"),
+            Value::I16(value) => write!(f, "{value}_i16"),
+            Value::U16(value) => write!(f, "{value}_u16"),
+            Value::I32(value) => write!(f, "{value}_i32"),
+            Value::U32(value) => write!(f, "{value}_u32"),
+            Value::I64(value) => write!(f, "{value}_i64"),
+            Value::U64(value) => write!(f, "{value}_u64"),
+            Value::I128(value) => write!(f, "{value}_i128"),
+            Value::U128(value) => write!(f, "{value}_u128"),
+        }
+    }
+}
+
 macro_rules! impl_ops {
     (
         $value:ty,
@@ -385,7 +380,7 @@ impl_ops!(
 // ----
 
 #[derive(Clone, Debug)]
-enum Expression {
+enum Expr {
     Add(Box<Self>, Box<Self>),
     Sub(Box<Self>, Box<Self>),
     Mul(Box<Self>, Box<Self>),
@@ -394,7 +389,7 @@ enum Expression {
     Const(Value),
 }
 
-impl Expression {
+impl Expr {
     fn from_op(op: Op) -> fn(Box<Self>, Box<Self>) -> Self {
         match op {
             Op::Add => Self::Add,
@@ -427,7 +422,7 @@ impl Expression {
     }
 }
 
-impl Writable for Expression {
+impl Writable for Expr {
     fn write(&self, tx: &mut dyn Writer) {
         let (lhs, rhs, op) = match self {
             Self::Add(lhs, rhs) => (lhs, rhs, Op::Add),
@@ -446,5 +441,18 @@ impl Writable for Expression {
         tx.write(Token::Op(op));
         tx.write(&**lhs);
         tx.write(&**rhs);
+    }
+}
+
+impl fmt::Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expr::Add(lhs, rhs) => write!(f, "({lhs}) + ({rhs})"),
+            Expr::Sub(lhs, rhs) => write!(f, "({lhs}) - ({rhs})"),
+            Expr::Mul(lhs, rhs) => write!(f, "({lhs}) * ({rhs})"),
+            Expr::Div(lhs, rhs) => write!(f, "({lhs}) / ({rhs})"),
+            Expr::Rem(lhs, rhs) => write!(f, "({lhs}) % ({rhs})"),
+            Expr::Const(value) => write!(f, "{value}"),
+        }
     }
 }

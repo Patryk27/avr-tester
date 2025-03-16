@@ -11,6 +11,10 @@ name = "acc-eval"
 path = "src/acc_eval.rs"
 
 [[bin]]
+name = "acc-fractal"
+path = "src/acc_fractal.rs"
+
+[[bin]]
 name = "analog-pins"
 path = "src/analog_pins.rs"
 
