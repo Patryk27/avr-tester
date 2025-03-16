@@ -15,7 +15,7 @@ fn test() {
     let mut avr = AvrTester::atmega328()
         .with_clock_of_16_mhz()
         .with_timeout_of_ms(100) // We think our AVR should complete within 100ms
-        .load("../avr-tester-fixtures/target/atmega328p/release/timeout.elf");
+        .load("../avr-tester-fixtures/target/avr-none/release/timeout.elf");
 
     avr.pins().pd0().pulse_in();
 

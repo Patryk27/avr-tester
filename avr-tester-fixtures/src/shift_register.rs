@@ -25,7 +25,7 @@ fn main() -> ! {
     // Transmits eight bits to the shift register
     let mut out_u8 = |val: u8| {
         for n in 0..8 {
-            out_bool(val & (2 << n - 1) > 0);
+            out_bool(val & (2 << (n - 1)) > 0);
         }
     };
 

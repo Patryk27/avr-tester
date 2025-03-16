@@ -39,7 +39,7 @@ use avr_tester::*;
 fn avr() -> AvrTester {
     AvrTester::atmega328p()
         .with_clock_of_16_mhz()
-        .load("../../firmware/target/atmega328p/release/firmware.elf")
+        .load("../../firmware/target/avr-none/release/firmware.elf")
 }
 
 // Assuming `firmware` implements a ROT-13 encoder:

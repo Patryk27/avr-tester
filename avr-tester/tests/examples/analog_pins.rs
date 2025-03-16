@@ -9,9 +9,9 @@ use avr_tester::AvrTester;
 
 #[test]
 fn test() {
-    let mut avr = AvrTester::atmega328().with_clock_of_16_mhz().load(
-        "../avr-tester-fixtures/target/atmega328p/release/analog-pins.elf",
-    );
+    let mut avr = AvrTester::atmega328()
+        .with_clock_of_16_mhz()
+        .load("../avr-tester-fixtures/target/avr-none/release/analog-pins.elf");
 
     // Give the firmware a moment to initialize
     avr.run_for_ms(1);
