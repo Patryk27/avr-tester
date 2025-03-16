@@ -76,7 +76,7 @@ fn long_text() {
 }
 ```
 
-... having the tests ready, just run `cargo test` inside `firmware-tests` :-)
+... having the tests ready, just run `cargo test` inside `firmware-tests`.
 
 Since AvrTester emulates an actual AVR, you don't have to modify your firmware
 at all - it can use timers, GPIOs etc. and everything should just work ™.
