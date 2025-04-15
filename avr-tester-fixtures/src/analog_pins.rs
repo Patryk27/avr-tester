@@ -3,6 +3,9 @@
 #![no_std]
 #![no_main]
 
+#[cfg(feature = "custom-compiler-builtins")]
+extern crate custom_compiler_builtins;
+
 use atmega_hal::adc::{AdcSettings, ReferenceVoltage};
 use atmega_hal::clock::MHz16;
 use atmega_hal::{pins, Adc, Peripherals};

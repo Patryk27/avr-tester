@@ -11,7 +11,7 @@ use avr_tester::AvrTester;
 fn test() {
     let mut avr = AvrTester::atmega328()
         .with_clock_of_16_mhz()
-        .load("../avr-tester-fixtures/target/atmega328p/release/uart.elf");
+        .load("../avr-tester-fixtures/target/avr-none/release/uart.elf");
 
     avr.run_for_ms(1);
 

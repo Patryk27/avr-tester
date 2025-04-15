@@ -10,7 +10,7 @@ use avr_tester::{AvrDuration, AvrDurationExt, AvrTester};
 #[test]
 fn simple() {
     let mut avr = AvrTester::atmega328().with_clock_of_16_mhz().load(
-        "../avr-tester-fixtures/target/atmega328p/release/digital-pins.elf",
+        "../avr-tester-fixtures/target/avr-none/release/digital-pins.elf",
     );
 
     // Give the firmware a moment to initialize
@@ -55,7 +55,7 @@ fn precise() {
             + 10, // Some leeway, just in case
         )
         .load(
-            "../avr-tester-fixtures/target/atmega328p/release/digital-pins.elf",
+            "../avr-tester-fixtures/target/avr-none/release/digital-pins.elf",
         );
 
     // Give the firmware a moment to initialize
@@ -90,7 +90,7 @@ fn precise_idiomatic() {
         .with_clock_of_16_mhz()
         .with_timeout_of_s(2)
         .load(
-            "../avr-tester-fixtures/target/atmega328p/release/digital-pins.elf",
+            "../avr-tester-fixtures/target/avr-none/release/digital-pins.elf",
         );
 
     // Give the firmware a moment to initialize
@@ -154,7 +154,7 @@ fn precise_stuck() {
         .with_clock_of_16_mhz()
         .with_timeout_of_ms(100)
         .load(
-            "../avr-tester-fixtures/target/atmega328p/release/digital-pins.elf",
+            "../avr-tester-fixtures/target/avr-none/release/digital-pins.elf",
         );
 
     while avr.pins().pd1().is_low() {

@@ -39,7 +39,7 @@ use avr_tester::*;
 fn avr() -> AvrTester {
     AvrTester::atmega328p()
         .with_clock_of_16_mhz()
-        .load("../../firmware/target/atmega328p/release/firmware.elf")
+        .load("../../firmware/target/avr-none/release/firmware.elf")
 }
 
 // Assuming `firmware` implements a ROT-13 encoder:
@@ -76,7 +76,7 @@ fn long_text() {
 }
 ```
 
-... having the tests ready, just run `cargo test` inside `firmware-tests` :-)
+... having the tests ready, just run `cargo test` inside `firmware-tests`.
 
 Since AvrTester emulates an actual AVR, you don't have to modify your firmware
 at all - it can use timers, GPIOs etc. and everything should just work ™.

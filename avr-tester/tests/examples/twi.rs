@@ -11,7 +11,7 @@ use avr_tester::{AvrTester, Reader, TwiPacket, TwiSlave};
 fn test() {
     let mut avr = AvrTester::atmega164pa()
         .with_clock_of_16_mhz()
-        .load("../avr-tester-fixtures/target/atmega328p/release/twi.elf");
+        .load("../avr-tester-fixtures/target/avr-none/release/twi.elf");
 
     avr.twi0().attach_slave(SimpleTwiRam::default());
     avr.run_for_ms(250);

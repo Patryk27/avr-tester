@@ -51,7 +51,7 @@ async fn spi_input_catcher(
 #[test]
 fn test() {
     let mut avr = AvrTester::atmega328().with_clock_of_16_mhz().load(
-        "../avr-tester-fixtures/target/atmega328p/release/spi-component.elf",
+        "../avr-tester-fixtures/target/avr-none/release/spi-component.elf",
     );
 
     // Numbers transmitted through SPI when PD0 was high
@@ -79,7 +79,7 @@ fn test() {
             0xCA, 0xFE, 0xBA, 0xBE, //
             0xCA, 0xFE, 0xBA, 0xBE, //
             0xCA, 0xFE, 0xBA, 0xBE, //
-            0xCA,
+            0xCA, 0xFE,
         ],
         *low_numbers.borrow()
     );

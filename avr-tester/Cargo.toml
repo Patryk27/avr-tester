@@ -13,4 +13,6 @@ keywords = ["avr", "test", "framework", "microcontroller", "simavr"]
 avr-simulator = { path = "../avr-simulator", version = "0.3.0" }
 
 [dev-dependencies]
+indoc = "2.0.6"
+pretty_assertions = "1.4.1"
 rand = "0.8"

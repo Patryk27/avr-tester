@@ -48,7 +48,7 @@ async fn shift_register(numbers: Rc<RefCell<Vec<u8>>>) {
 #[test]
 fn test() {
     let mut avr = AvrTester::atmega328().with_clock_of_16_mhz().load(
-        "../avr-tester-fixtures/target/atmega328p/release/shift-register.elf",
+        "../avr-tester-fixtures/target/avr-none/release/shift-register.elf",
     );
 
     let numbers = Rc::new(RefCell::new(Vec::new()));
@@ -67,7 +67,7 @@ fn test() {
 #[test]
 fn remove() {
     let mut avr = AvrTester::atmega328().with_clock_of_16_mhz().load(
-        "../avr-tester-fixtures/target/atmega328p/release/shift-register.elf",
+        "../avr-tester-fixtures/target/avr-none/release/shift-register.elf",
     );
 
     let numbers = Rc::new(RefCell::new(Vec::new()));
@@ -94,7 +94,7 @@ fn remove() {
 #[test]
 fn pause_and_resume() {
     let mut avr = AvrTester::atmega328().with_clock_of_16_mhz().load(
-        "../avr-tester-fixtures/target/atmega328p/release/shift-register.elf",
+        "../avr-tester-fixtures/target/avr-none/release/shift-register.elf",
     );
 
     let numbers = Rc::new(RefCell::new(Vec::new()));

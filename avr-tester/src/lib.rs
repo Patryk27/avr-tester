@@ -9,7 +9,7 @@
 //! fn test() {
 //!     let mut avr = AvrTester::atmega328p()
 //!         .with_clock_of_16_mhz()
-//!         .load("../../firmware/target/atmega328p/release/firmware.elf");
+//!         .load("../../firmware/target/avr-none/release/firmware.elf");
 //!
 //!     // Let's give our firmware a moment to initialize:
 //!     avr.run_for_ms(1);

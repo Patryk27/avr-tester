@@ -56,6 +56,7 @@ version = "0.0.0"
 dependencies = [
  "atmega-hal",
  "avr-hal-generic",
+ "compiler_builtins",
  "embedded-hal",
  "panic-halt",
 ]
@@ -74,6 +75,11 @@ name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+
+[[package]]
+name = "compiler_builtins"
+version = "0.1.151"
+source = "git+https://github.com/rust-lang/compiler-builtins#7bec089672eb5cd83d7902edd59479527bc9d8d1"
 
 [[package]]
 name = "embedded-hal"
