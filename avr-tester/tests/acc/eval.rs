@@ -17,8 +17,8 @@
 //! See: [../../../avr-tester-fixtures/src/acc_eval.rs].
 
 use avr_tester::{AvrTester, Uart, Writable, Writer, WriterHelper};
-use rand::seq::SliceRandom;
 use rand::Rng;
+use rand::seq::SliceRandom;
 use std::fmt;
 
 #[test]
@@ -99,7 +99,7 @@ fn complex() {
                     let build_expression = Expr::from_op(Op::random());
                     let value = Box::new(Expr::Const(Value::random_half(ty)));
 
-                    expr = if rng.gen::<bool>() {
+                    expr = if rng.r#gen::<bool>() {
                         build_expression(Box::new(expr), value)
                     } else {
                         build_expression(value, Box::new(expr))
@@ -253,16 +253,16 @@ impl Value {
         let mut rng = rand::thread_rng();
 
         match ty {
-            Type::I8 => Self::I8(rng.gen()),
-            Type::U8 => Self::U8(rng.gen()),
-            Type::I16 => Self::I16(rng.gen()),
-            Type::U16 => Self::U16(rng.gen()),
-            Type::I32 => Self::I32(rng.gen()),
-            Type::U32 => Self::U32(rng.gen()),
-            Type::I64 => Self::I64(rng.gen()),
-            Type::U64 => Self::U64(rng.gen()),
-            Type::I128 => Self::I128(rng.gen()),
-            Type::U128 => Self::U128(rng.gen()),
+            Type::I8 => Self::I8(rng.r#gen()),
+            Type::U8 => Self::U8(rng.r#gen()),
+            Type::I16 => Self::I16(rng.r#gen()),
+            Type::U16 => Self::U16(rng.r#gen()),
+            Type::I32 => Self::I32(rng.r#gen()),
+            Type::U32 => Self::U32(rng.r#gen()),
+            Type::I64 => Self::I64(rng.r#gen()),
+            Type::U64 => Self::U64(rng.r#gen()),
+            Type::I128 => Self::I128(rng.r#gen()),
+            Type::U128 => Self::U128(rng.r#gen()),
         }
     }
 

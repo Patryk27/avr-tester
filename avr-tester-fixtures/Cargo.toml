@@ -1,6 +1,6 @@
 [package]
 name = "avr-tester-fixtures"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 name = "acc-bits"

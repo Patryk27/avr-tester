@@ -17,7 +17,7 @@
 //!
 //! See: [../../../avr-tester-fixtures/spi-component/src/main.rs].
 
-use avr_tester::{avr_rt, AvrTester, Reader};
+use avr_tester::{AvrTester, Reader, avr_rt};
 use std::cell::RefCell;
 use std::rc::Rc;
 

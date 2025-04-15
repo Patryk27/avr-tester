@@ -17,7 +17,7 @@
 //!
 //! See: [../../../avr-tester-fixtures/src/shift_register.rs].
 
-use avr_tester::{avr_rt, AvrTester};
+use avr_tester::{AvrTester, avr_rt};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -76,7 +76,7 @@ fn remove() {
         avr.components().add(shift_register(Rc::clone(&numbers)));
 
     // Wait until we receive the first number
-    while numbers.borrow().len() == 0 {
+    while numbers.borrow().is_empty() {
         avr.run();
     }
 
@@ -103,7 +103,7 @@ fn pause_and_resume() {
         avr.components().add(shift_register(Rc::clone(&numbers)));
 
     // Wait until we receive the first number
-    while numbers.borrow().len() == 0 {
+    while numbers.borrow().is_empty() {
         avr.run();
     }
 

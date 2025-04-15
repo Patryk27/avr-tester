@@ -26,7 +26,8 @@ impl Uart {
         // fail there.)
         //
         // Safety: `IoCtl::UartGetFlags` requires a parameter of type `u32`
-        let status = avr.ioctl(IoCtl::UartGetFlags { id }, &mut flags);
+        let status =
+            unsafe { avr.ioctl(IoCtl::UartGetFlags { id }, &mut flags) };
 
         if status != 0 {
             return None;
@@ -41,7 +42,9 @@ impl Uart {
         flags &= !ffi::AVR_UART_FLAG_STDIO;
 
         // Safety: `IoCtl::UartSetFlags` requires a parameter of type `u32`
-        avr.ioctl(IoCtl::UartSetFlags { id }, &mut flags);
+        unsafe {
+            avr.ioctl(IoCtl::UartSetFlags { id }, &mut flags);
+        }
 
         // ----
         // Now let's finalize everything by attaching to simavr's IRQs so that
@@ -51,23 +54,25 @@ impl Uart {
         let state = NonNull::from(Box::leak(Default::default()));
 
         // Safety: All of callbacks match the expected IRQs
-        Avr::irq_register_notify(
-            avr.io_getirq(ioctl, ffi::UART_IRQ_OUTPUT),
-            Some(Self::on_output),
-            state.as_ptr(),
-        );
+        unsafe {
+            Avr::irq_register_notify(
+                avr.io_getirq(ioctl, ffi::UART_IRQ_OUTPUT),
+                Some(Self::on_output),
+                state.as_ptr(),
+            );
 
-        Avr::irq_register_notify(
-            avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XON),
-            Some(Self::on_xon),
-            state.as_ptr(),
-        );
+            Avr::irq_register_notify(
+                avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XON),
+                Some(Self::on_xon),
+                state.as_ptr(),
+            );
 
-        Avr::irq_register_notify(
-            avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XOFF),
-            Some(Self::on_xoff),
-            state.as_ptr(),
-        );
+            Avr::irq_register_notify(
+                avr.io_getirq(ioctl, ffi::UART_IRQ_OUT_XOFF),
+                Some(Self::on_xoff),
+                state.as_ptr(),
+            );
+        }
 
         let irq_input =
             avr.io_getirq(IoCtl::UartGetIrq { id }, ffi::UART_IRQ_INPUT);
@@ -114,7 +119,7 @@ impl Uart {
     /// - UART interrupts are re-entrant, so the caller must make sure to
     ///   release the borrow before calling [`AvrManager::raise_irq()`].
     unsafe fn state_mut(&mut self) -> &mut UartState {
-        self.state.as_mut()
+        unsafe { self.state.as_mut() }
     }
 
     unsafe extern "C" fn on_output(
@@ -122,7 +127,9 @@ impl Uart {
         value: u32,
         mut state: NonNull<UartState>,
     ) {
-        state.as_mut().rx.push_back(value as u8);
+        unsafe {
+            state.as_mut().rx.push_back(value as u8);
+        }
     }
 
     unsafe extern "C" fn on_xon(
@@ -130,7 +137,9 @@ impl Uart {
         _: u32,
         mut state: NonNull<UartState>,
     ) {
-        state.as_mut().xon = true;
+        unsafe {
+            state.as_mut().xon = true;
+        }
     }
 
     unsafe extern "C" fn on_xoff(
@@ -138,7 +147,9 @@ impl Uart {
         _: u32,
         mut state: NonNull<UartState>,
     ) {
-        state.as_mut().xon = false;
+        unsafe {
+            state.as_mut().xon = false;
+        }
     }
 }
 

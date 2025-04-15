@@ -26,11 +26,13 @@ impl Adc {
             state: NonNull::from(Box::leak(Default::default())),
         };
 
-        Avr::irq_register_notify(
-            irq,
-            Some(Self::on_adc_ready),
-            this.state.as_ptr(),
-        );
+        unsafe {
+            Avr::irq_register_notify(
+                irq,
+                Some(Self::on_adc_ready),
+                this.state.as_ptr(),
+            );
+        }
 
         Some(this)
     }
@@ -51,19 +53,21 @@ impl Adc {
         _: u32,
         mut state: NonNull<AdcState>,
     ) {
-        let (adc_id, adc_voltage) =
-            if let Some(voltage) = state.as_mut().voltages.pop_front() {
-                voltage
-            } else {
-                return;
-            };
+        unsafe {
+            let (adc_id, adc_voltage) =
+                if let Some(voltage) = state.as_mut().voltages.pop_front() {
+                    voltage
+                } else {
+                    return;
+                };
 
-        let irq = irq
-            .as_ptr()
-            .sub(ffi::ADC_IRQ_OUT_TRIGGER as _)
-            .add(adc_id as _);
+            let irq = irq
+                .as_ptr()
+                .sub(ffi::ADC_IRQ_OUT_TRIGGER as _)
+                .add(adc_id as _);
 
-        ffi::avr_raise_irq(irq, adc_voltage);
+            ffi::avr_raise_irq(irq, adc_voltage);
+        }
     }
 }
 

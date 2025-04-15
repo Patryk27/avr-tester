@@ -71,11 +71,13 @@ impl Avr {
     /// Callers must ensure that given `ioctl` and `T` match (that is: different
     /// ioctls require parameters of different kinds, from u32 to structs).
     pub unsafe fn ioctl<T>(&mut self, ioctl: IoCtl, param: &mut T) -> c_int {
-        ffi::avr_ioctl(
-            self.inner.as_ptr(),
-            ioctl.into_ffi(),
-            param as *mut _ as *mut _,
-        )
+        unsafe {
+            ffi::avr_ioctl(
+                self.inner.as_ptr(),
+                ioctl.into_ffi(),
+                param as *mut _ as *mut _,
+            )
+        }
     }
 
     pub fn io_getirq(&self, ioctl: IoCtl, irq: u32) -> NonNull<ffi::avr_irq_t> {
@@ -115,13 +117,15 @@ impl Avr {
         //
         // ... where both conversions are legal.
         #[allow(clippy::missing_transmute_annotations)]
-        let notify = mem::transmute(notify);
+        let notify = unsafe { mem::transmute(notify) };
 
         // Safety: We're transmuting `*mut T` -> `*mut c_void`, which is legal
         #[allow(clippy::missing_transmute_annotations)]
-        let param = mem::transmute(param);
+        let param = unsafe { mem::transmute(param) };
 
-        ffi::avr_irq_register_notify(irq.as_ptr(), notify, param);
+        unsafe {
+            ffi::avr_irq_register_notify(irq.as_ptr(), notify, param);
+        }
     }
 }
 

@@ -68,7 +68,7 @@ impl AvrSimulator {
         let mut spis = HashMap::new();
 
         for id in 0..8 {
-            if let Some(spi) = Spi::new(id, avr) {
+            if let Some(spi) = unsafe { Spi::new(id, avr) } {
                 spis.insert(id, spi);
             } else {
                 break;
@@ -82,7 +82,7 @@ impl AvrSimulator {
         let mut twis = HashMap::new();
 
         for id in 0..8 {
-            if let Some(twi) = Twi::new(id, avr) {
+            if let Some(twi) = unsafe { Twi::new(id, avr) } {
                 twis.insert(id, twi);
             } else {
                 break;
@@ -98,7 +98,7 @@ impl AvrSimulator {
         for id in 0..8 {
             let id = (b'0' + id) as char;
 
-            if let Some(uart) = Uart::new(id, avr) {
+            if let Some(uart) = unsafe { Uart::new(id, avr) } {
                 uarts.insert(id, uart);
             } else {
                 break;

@@ -26,11 +26,13 @@ impl Twi {
             }))),
         };
 
-        Avr::irq_register_notify(
-            irq_output,
-            Some(Self::on_output),
-            this.state.as_ptr(),
-        );
+        unsafe {
+            Avr::irq_register_notify(
+                irq_output,
+                Some(Self::on_output),
+                this.state.as_ptr(),
+            );
+        }
 
         Some(this)
     }
@@ -51,11 +53,16 @@ impl Twi {
         value: u32,
         mut state: NonNull<TwiState>,
     ) {
-        let state = state.as_mut();
+        unsafe {
+            let state = state.as_mut();
 
-        if let Some(slave) = &mut state.slave {
-            if let Some(packet) = slave.recv(TwiPacket::decode(value)) {
-                ffi::avr_raise_irq(state.irq_input.as_ptr(), packet.encode());
+            if let Some(slave) = &mut state.slave {
+                if let Some(packet) = slave.recv(TwiPacket::decode(value)) {
+                    ffi::avr_raise_irq(
+                        state.irq_input.as_ptr(),
+                        packet.encode(),
+                    );
+                }
             }
         }
     }

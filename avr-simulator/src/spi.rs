@@ -30,11 +30,13 @@ impl Spi {
             ready: true,
         };
 
-        Avr::irq_register_notify(
-            irq_output,
-            Some(Self::on_output),
-            this.state.as_ptr(),
-        );
+        unsafe {
+            Avr::irq_register_notify(
+                irq_output,
+                Some(Self::on_output),
+                this.state.as_ptr(),
+            );
+        }
 
         Some(this)
     }
@@ -84,7 +86,9 @@ impl Spi {
         value: u32,
         mut state: NonNull<SpiState>,
     ) {
-        state.as_mut().rx.push_back(value as u8);
+        unsafe {
+            state.as_mut().rx.push_back(value as u8);
+        }
     }
 }
 

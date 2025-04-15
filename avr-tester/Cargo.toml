@@ -1,7 +1,7 @@
 [package]
 name = "avr-tester"
 version = "0.3.0"
-edition = "2021"
+edition = "2024"
 authors = ["Patryk Wychowaniec <pwychowaniec@pm.me>"]
 license = "MIT"
 description = "Framework for testing AVR binaries"

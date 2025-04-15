@@ -1,7 +1,7 @@
 [package]
 name = "avr-simulator"
 version = "0.3.0"
-edition = "2021"
+edition = "2024"
 authors = ["Patryk Wychowaniec <pwychowaniec@pm.me>"]
 license = "MIT"
 description = "Oxidized interface for simavr"
