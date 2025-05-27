@@ -18,10 +18,11 @@ fn test() {
     assert_eq!("Ready!", avr.spi0().read::<String>());
 
     let mut assert = |given: &str, expected: &str| {
-        avr.spi0().write(given);
-        avr.run_for_ms(50);
-
-        assert_eq!(expected, avr.spi0().read::<String>());
+        for (out, exp) in given.bytes().zip(expected.bytes()) {
+            avr.spi0().write(out);
+            avr.run_for_ms(1);
+            assert_eq!(exp, avr.spi0().read());
+        }
     };
 
     assert("Hello, World!", "Uryyb, Jbeyq!");
