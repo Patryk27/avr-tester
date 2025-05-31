@@ -109,9 +109,6 @@ impl AvrSimulator {
     }
 
     pub fn step(&mut self) -> StepOutcome {
-        for spi in self.spis.values_mut() {
-            spi.flush();
-        }
 
         for uart in self.uarts.values_mut() {
             uart.flush();
@@ -121,10 +118,6 @@ impl AvrSimulator {
         let state = self.avr.run();
         let tt = (self.avr.cycle() - cycle).max(1);
         let tt = AvrDuration::new(self.avr.frequency(), tt);
-
-        for spi in self.spis.values_mut() {
-            spi.tick(tt.as_cycles());
-        }
 
         StepOutcome { state, tt }
     }

@@ -13,23 +13,16 @@ fn test() {
         .with_clock_of_16_mhz()
         .load("../avr-tester-fixtures/target/avr-none/release/spi.elf");
 
-    avr.run_for_ms(1);
+    
+    avr.spi0().write([0u8; 5]);
+    avr.spi0().write("Hello, World!");
+    avr.spi0().write("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent \
+    non maximus purus. Fusce a neque condimentum, finibus dui et, tempor");
 
-    assert_eq!("Ready!", avr.spi0().read::<String>());
+    avr.run_for_ms(10);
 
-    let mut assert = |given: &str, expected: &str| {
-        avr.spi0().write(given);
-        avr.run_for_ms(50);
-
-        assert_eq!(expected, avr.spi0().read::<String>());
-    };
-
-    assert("Hello, World!", "Uryyb, Jbeyq!");
-
-    assert(
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent \
-          non maximus purus. Fusce a neque condimentum, finibus dui et, tempor",
-        "Yberz vcfhz qbybe fvg nzrg, pbafrpgrghe nqvcvfpvat ryvg. Cenrfrag \
-          aba znkvzhf chehf. Shfpr n ardhr pbaqvzraghz, svavohf qhv rg, grzcbe",
-    );
+    assert_eq!(Ok("Ready!"),  str::from_utf8(&avr.spi0().read::<[u8; 6]>()));
+    assert_eq!(Ok("Uryyb, Jbeyq!"),  str::from_utf8(&avr.spi0().read::<[u8; 13]>()));
+    assert_eq!(Ok("Yberz vcfhz qbybe fvg nzrg, pbafrpgrghe nqvcvfpvat ryvg. Cenrfrag \
+        aba znkvzhf chehf. Shfpr n ardhr pbaqvzraghz, svavohf qhv rg, grzcbe"),  str::from_utf8(&avr.spi0().read::<[u8; 134]>()));
 }
