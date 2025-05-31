@@ -33,12 +33,9 @@ fn main() -> ! {
 
     loop {
         let c = nb::block!(spi.read()).void_unwrap();
+        let c = rot13(c);
 
-        if c != 0 {
-            let c = rot13(c);
-
-            nb::block!(spi.send(c)).void_unwrap();
-        }
+        nb::block!(spi.send(c)).void_unwrap();
     }
 }
 
