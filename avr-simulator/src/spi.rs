@@ -5,9 +5,6 @@ use std::ptr::NonNull;
 #[derive(Debug)]
 pub struct Spi {
     state: NonNull<SpiState>,
-    irq_input: NonNull<ffi::avr_irq_t>,
-    ticks: u64,
-    ready: bool,
 }
 
 impl Spi {
@@ -24,10 +21,7 @@ impl Spi {
         let irq_output = avr.try_io_getirq(ioctl, ffi::SPI_IRQ_OUTPUT)?;
 
         let this = Self {
-            state: NonNull::from(Box::leak(Default::default())),
-            irq_input,
-            ticks: 0,
-            ready: true,
+            state: NonNull::from(Box::leak(Box::new(SpiState::new(irq_input)))),
         };
 
         unsafe {
@@ -49,20 +43,6 @@ impl Spi {
         self.state_mut().tx.push_back(byte);
     }
 
-    pub fn flush(&mut self) {
-        if !self.ready {
-            return;
-        }
-
-        if let Some(byte) = self.state_mut().tx.pop_front() {
-            unsafe {
-                ffi::avr_raise_irq(self.irq_input.as_ptr(), byte as _);
-            }
-
-            self.ready = false;
-        }
-    }
-
     fn state_mut(&mut self) -> &mut SpiState {
         // Safety: `state` points to a valid object; nothing else is writing
         // there at the moment, as guarded by `&mut self` here and on
@@ -70,24 +50,16 @@ impl Spi {
         unsafe { self.state.as_mut() }
     }
 
-    pub fn tick(&mut self, tt: u64) {
-        self.ticks += tt;
-
-        // HACK unfortunately, as compared to UART, the SPI interface doesn't
-        //      expose any kind of xon / xoff flag, forcing us to improvise
-        if self.ticks >= 128 + 64 {
-            self.ticks = 0;
-            self.ready = true;
-        }
-    }
-
     unsafe extern "C" fn on_output(
         _: NonNull<ffi::avr_irq_t>,
         value: u32,
         mut state: NonNull<SpiState>,
     ) {
+        let state = unsafe { state.as_mut() };
+        state.rx.push_back(value as u8);
+        let byte = state.tx.pop_front().unwrap_or_default();
         unsafe {
-            state.as_mut().rx.push_back(value as u8);
+            ffi::avr_raise_irq(state.irq_input.as_ptr(), byte as _);
         }
     }
 }
@@ -100,11 +72,24 @@ impl Drop for Spi {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct SpiState {
+    /// irq used to signal that to the AVR that is has received a new byte
+    irq_input: NonNull<ffi::avr_irq_t>,
+
     /// Queue of bytes scheduled to be sent into AVR.
     tx: VecDeque<u8>,
 
     /// Queue of bytes retrieved from AVR, pending to be read by the simulator.
     rx: VecDeque<u8>,
+}
+
+impl SpiState {
+    fn new(irq_input: NonNull<ffi::avr_irq_t>) -> Self {
+        Self {
+            irq_input,
+            tx: Default::default(),
+            rx: Default::default(),
+        }
+    }
 }
