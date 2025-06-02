@@ -55,6 +55,7 @@ name = "avr-tester-fixtures"
 version = "0.0.0"
 dependencies = [
  "atmega-hal",
+ "avr-device",
  "avr-hal-generic",
  "compiler_builtins",
  "embedded-hal",

@@ -2,10 +2,16 @@ use super::*;
 use std::collections::VecDeque;
 use std::ptr::NonNull;
 
+#[derive(Debug, Default, PartialEq, Eq)]
+pub enum SpiOperationMode {
+    Master,
+    #[default]
+    Slave,
+}
+
 #[derive(Debug)]
 pub struct Spi {
     state: NonNull<SpiState>,
-    irq_input: NonNull<ffi::avr_irq_t>,
     ticks: u64,
     ready: bool,
 }
@@ -24,10 +30,9 @@ impl Spi {
         let irq_output = avr.try_io_getirq(ioctl, ffi::SPI_IRQ_OUTPUT)?;
 
         let this = Self {
-            state: NonNull::from(Box::leak(Default::default())),
-            irq_input,
-            ticks: 0,
-            ready: true,
+            state: NonNull::from(Box::leak(Box::new(SpiState::new(irq_input)))),
+            ticks: Default::default(),
+            ready: Default::default(),
         };
 
         unsafe {
@@ -41,6 +46,10 @@ impl Spi {
         Some(this)
     }
 
+    pub fn set_operation_mode(&mut self, operation_mode: SpiOperationMode) {
+        self.state_mut().operation_mode = operation_mode;
+    }
+
     pub fn read(&mut self) -> Option<u8> {
         self.state_mut().rx.pop_front()
     }
@@ -50,24 +59,20 @@ impl Spi {
     }
 
     pub fn flush(&mut self) {
-        if !self.ready {
+        if self.state_mut().operation_mode == SpiOperationMode::Slave
+            || !self.ready
+        {
             return;
         }
 
-        if let Some(byte) = self.state_mut().tx.pop_front() {
+        let state = self.state_mut();
+        if let Some(byte) = state.tx.pop_front() {
             unsafe {
-                ffi::avr_raise_irq(self.irq_input.as_ptr(), byte as _);
+                ffi::avr_raise_irq(state.irq_input.as_ptr(), byte as _);
             }
 
             self.ready = false;
         }
-    }
-
-    fn state_mut(&mut self) -> &mut SpiState {
-        // Safety: `state` points to a valid object; nothing else is writing
-        // there at the moment, as guarded by `&mut self` here and on
-        // `Avr::run()`
-        unsafe { self.state.as_mut() }
     }
 
     pub fn tick(&mut self, tt: u64) {
@@ -81,13 +86,26 @@ impl Spi {
         }
     }
 
+    fn state_mut(&mut self) -> &mut SpiState {
+        // Safety: `state` points to a valid object; nothing else is writing
+        // there at the moment, as guarded by `&mut self` here and on
+        // `Avr::run()`
+        unsafe { self.state.as_mut() }
+    }
+
     unsafe extern "C" fn on_output(
         _: NonNull<ffi::avr_irq_t>,
         value: u32,
         mut state: NonNull<SpiState>,
     ) {
         unsafe {
-            state.as_mut().rx.push_back(value as u8);
+            let state = state.as_mut();
+            state.rx.push_back(value as u8);
+
+            if state.operation_mode == SpiOperationMode::Slave {
+                let byte = state.tx.pop_front().unwrap_or_default();
+                ffi::avr_raise_irq(state.irq_input.as_ptr(), byte as _);
+            }
         }
     }
 }
@@ -100,11 +118,28 @@ impl Drop for Spi {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct SpiState {
+    /// irq used to signal that to the AVR that is has received a new byte
+    irq_input: NonNull<ffi::avr_irq_t>,
+
     /// Queue of bytes scheduled to be sent into AVR.
     tx: VecDeque<u8>,
 
     /// Queue of bytes retrieved from AVR, pending to be read by the simulator.
     rx: VecDeque<u8>,
+
+    /// Operation mode - whether we push bytes to the AVR, or respond to bytes pushed by the AVR
+    operation_mode: SpiOperationMode,
+}
+
+impl SpiState {
+    fn new(irq_input: NonNull<ffi::avr_irq_t>) -> Self {
+        Self {
+            irq_input,
+            tx: Default::default(),
+            rx: Default::default(),
+            operation_mode: Default::default(),
+        }
+    }
 }

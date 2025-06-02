@@ -81,6 +81,10 @@ impl<'a> Spi<'a> {
     {
         value.write(self);
     }
+
+    pub fn set_master(&mut self) {
+        self.sim.set_spi_master(self.id);
+    }
 }
 
 impl Reader for Spi<'_> {

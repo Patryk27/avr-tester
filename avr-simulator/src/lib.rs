@@ -137,6 +137,10 @@ impl AvrSimulator {
         self.spi(id).write(byte)
     }
 
+    pub fn set_spi_master(&mut self, id: u8) {
+        self.spi(id).set_operation_mode(SpiOperationMode::Master);
+    }
+
     pub fn set_twi_slave(&mut self, id: u8, slave: impl TwiSlave + 'static) {
         self.twi(id).set_slave(slave);
     }
