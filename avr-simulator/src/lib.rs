@@ -109,6 +109,9 @@ impl AvrSimulator {
     }
 
     pub fn step(&mut self) -> StepOutcome {
+        for spi in self.spis.values_mut() {
+            spi.flush();
+        }
 
         for uart in self.uarts.values_mut() {
             uart.flush();
@@ -119,6 +122,10 @@ impl AvrSimulator {
         let tt = (self.avr.cycle() - cycle).max(1);
         let tt = AvrDuration::new(self.avr.frequency(), tt);
 
+        for spi in self.spis.values_mut() {
+            spi.tick(tt.as_cycles());
+        }
+
         StepOutcome { state, tt }
     }
 
@@ -128,6 +135,10 @@ impl AvrSimulator {
 
     pub fn write_spi(&mut self, id: u8, byte: u8) {
         self.spi(id).write(byte)
+    }
+
+    pub fn set_spi_master(&mut self, id: u8) {
+        self.spi(id).set_operation_mode(SpiOperationMode::Master);
     }
 
     pub fn set_twi_slave(&mut self, id: u8, slave: impl TwiSlave + 'static) {

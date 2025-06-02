@@ -27,8 +27,12 @@ name = "shift-register"
 path = "src/shift_register.rs"
 
 [[bin]]
-name = "spi"
-path = "src/spi.rs"
+name = "spi_master"
+path = "src/spi_master.rs"
+
+[[bin]]
+name = "spi_slave"
+path = "src/spi_slave.rs"
 
 [[bin]]
 name = "spi-component"
@@ -48,6 +52,7 @@ path = "src/uart.rs"
 
 [dependencies]
 atmega-hal = { git = "https://github.com/Rahix/avr-hal", features = ["atmega328p", "rt"] }
+avr-device = {version = "0.3.3", features = ["atmega328p", "rt"] }
 avr-hal-generic = { git = "https://github.com/Rahix/avr-hal" }
 embedded-hal = "0.2.3"
 panic-halt = "0.2"

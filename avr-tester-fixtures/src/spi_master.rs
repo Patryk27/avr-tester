@@ -1,4 +1,4 @@
-//! See: [../../avr-tester/tests/examples/spi.rs].
+//! See: [../../avr-tester/tests/examples/spi_master.rs].
 
 #![no_std]
 #![no_main]
@@ -6,8 +6,7 @@
 #[cfg(feature = "custom-compiler-builtins")]
 extern crate custom_compiler_builtins;
 
-use atmega_hal::{pins, Peripherals};
-use atmega_hal::{spi, Spi};
+use atmega_hal::{Peripherals, Spi, pins, spi};
 use avr_hal_generic::nb;
 use avr_hal_generic::void::ResultVoidExt;
 use embedded_hal::spi::FullDuplex;
