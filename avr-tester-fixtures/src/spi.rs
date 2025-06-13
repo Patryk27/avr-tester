@@ -6,8 +6,7 @@
 #[cfg(feature = "custom-compiler-builtins")]
 extern crate custom_compiler_builtins;
 
-use atmega_hal::{pins, Peripherals};
-use atmega_hal::{spi, Spi};
+use atmega_hal::{Peripherals, Spi, pins, spi};
 use avr_hal_generic::nb;
 use avr_hal_generic::void::ResultVoidExt;
 use embedded_hal::spi::FullDuplex;
@@ -33,12 +32,9 @@ fn main() -> ! {
 
     loop {
         let c = nb::block!(spi.read()).void_unwrap();
+        let c = rot13(c);
 
-        if c != 0 {
-            let c = rot13(c);
-
-            nb::block!(spi.send(c)).void_unwrap();
-        }
+        nb::block!(spi.send(c)).void_unwrap();
     }
 }
 
