@@ -10,7 +10,7 @@ keywords = ["avr", "test", "framework", "microcontroller", "simavr"]
 
 [dependencies]
 libc = "0.2"
-simavr-ffi = { version = "1.1", features = ["patch-twi-inconsistencies"] }
+simavr-ffi = "1.2"
 
 [dev-dependencies]
 test-case = "2.1"
